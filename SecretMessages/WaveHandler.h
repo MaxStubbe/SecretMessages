@@ -22,6 +22,10 @@ typedef struct  WAV_HEADER {
 
 }wav_hdr;
 
+typedef struct  AUDIODATA {
+	char                data[357936];
+}audio_data;
+
 class WaveHandler
 {
 public:
