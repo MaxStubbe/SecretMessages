@@ -323,9 +323,9 @@ void WaveHandler::Read_3(std::string path)
 			GetUnicodeChar(nmbr, temp);
 			if (nmbr == '\0') {
 				if (utf8_check_is_valid(answer) && answer.size() > 1) {
-					if (answer == "Test String For Ya Boii") {
+					//if (answer == "Test String For Ya Boii") {
 						cout << answer << "\n";
-					}
+					//}
 				}
 				answer.clear();
 				counter++;
@@ -340,6 +340,88 @@ void WaveHandler::Read_3(std::string path)
 
 
 	
+
+}
+
+void WaveHandler::Read_4(std::string path)
+{
+	//---LOADING THE FILE---//
+	//Step 1: Read the header.
+		//SKIP THIS ONE FOR NOW
+	//Step 2: Read all data and put it in a vector
+	using namespace std;
+	ifstream wav{ path,ifstream::binary };
+
+	//Find out the chunksize
+	wav.seekg(40);
+	char* chuncksize = new char[4];
+	wav.get(chuncksize, 4);
+	unsigned long data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	cout << "Data Size: " << data_size << "\n";
+
+	//Put data in a vector of 16 bitsets
+	wav.seekg(44);
+	std::vector<bool> bits;
+	string temp;
+	for (int i = 0; i < data_size; i += 2) {//16 bit thingies
+		int8_t temp = wav.get();
+		int8_t temp2 = wav.get();
+		int16_t c = temp2 | (temp << 8);
+		//bitset<16> bit = bitset<16>(c);
+		//bits.push_back(bit.test(15));
+
+		bits.push_back(((c & (0x0001 << 15)) >> 15));
+	}
+
+	//Gather all the most insignificant bits.
+	std::vector<bitset<8>> result;
+	string set;
+	for (int i = 0; i < bits.size(); i += 1) {
+		set += std::to_string(bits[i]);
+		if (set.size() >= 8) {
+			bitset<8> bit = bitset<8>(set);
+			result.push_back(bit);
+			set.clear();
+		}
+	}
+
+
+
+	//---READING THE MESSAGE---//
+	//Step 1: Keep reading till you find a null byte (0000 0000).
+	//Step 2: Check if message is UTF-8. If yes: done, if no:  clear currently read bytes and go to step 1.
+	int counter = 0;
+	string answer;
+
+	for (int i = 0; i < result.size(); i += 1) {
+
+		bitset<8> current_byte = result[i];
+		unsigned long nmbr = current_byte.to_ulong();
+
+
+		if (nmbr <= CHAR_MAX) {
+			char c = static_cast<char>(nmbr);
+			char* temp = new char[5];
+			GetUnicodeChar(nmbr, temp);
+			if (nmbr == '\0') {
+				if (utf8_check_is_valid(answer) && answer.size() > 1) {
+					//if (answer == "Test String For Ya Boii") {
+					cout << answer << "\n";
+					//}
+				}
+				answer.clear();
+				counter++;
+			}
+			else {
+				answer += c;
+			}
+		}
+	}
+	cout << "Counted: " << counter << "\n";
+
+
+
+
 
 }
 

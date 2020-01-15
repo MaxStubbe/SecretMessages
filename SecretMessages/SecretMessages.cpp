@@ -28,7 +28,7 @@ int main()
 	//std::cout << std::endl;
 
 	WaveHandler wavehandler = WaveHandler(); 
-	wavehandler.Write(wavefilepath,"Test String For Ya Boii");
-	wavehandler.Read_3("test.wav");
+	//wavehandler.Write(wavefilepath,"Test String For Ya Boii");
+	wavehandler.Read_4("de-oude-schicht.wav");
 
 }
