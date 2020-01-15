@@ -158,8 +158,7 @@ void WaveHandler::Read_2(std::string path)
 		int c = (data[i + 1] << 8) | data[i];
 		bitset<16> bit = bitset<16>(c);
 		bits.push_back(bit);
-		//double t = c / 32768.0;
-		rawSignal.push_back(c);
+		rawSignal.push_back(c / 32768.0);
 	}
 
 	std::vector<bitset<8>> result;
@@ -174,15 +173,25 @@ void WaveHandler::Read_2(std::string path)
 		}
 	}
 
+	//if first bit is 0, then its a char
+	//if first is 1 and second is 0, then a second set is needed
+	//if first 3 bits are 110 then 2 sets of bits are needed
+
+
+
 	string answer;
 	for (auto& c : result) {
+		if (c.test(0) == 0) {
+			//character
+		}
+
 		unsigned long i = c.to_ulong();
 		if (i <= CHAR_MAX)
 			answer+= static_cast<char>(i);
 	}
 	std::vector<bitset<8>> result2;
 	set.clear();
-	for (int i = 0; i < answer.size(); i += 16) {
+	for (int i = 0; i < answer.size(); i += 1) {
 		set += answer[i];
 		if (set.size() >= 8) {
 			bitset<8> bit = bitset<8>(set[0]);
@@ -198,4 +207,30 @@ void WaveHandler::Read_2(std::string path)
 			answer2 += static_cast<char>(i);
 	}
 
+}
+
+
+int number_of_sets_needed(std::bitset<8> bits) {
+	if (bits.test(7)) { //Check 1000 0000
+		if (bits.test(6)) { //Check 1100 0000
+			if (bits.test(5)) { //Check 1110 0000
+				if (bits.test(4)) { //Check 1111 0000
+
+				}
+				else {
+					return 4;
+				}
+			}
+			else {
+				return 3;
+			}
+		}
+		else {
+			return 2;
+		}
+
+	}
+	else {
+		return 1;
+	}
 }
