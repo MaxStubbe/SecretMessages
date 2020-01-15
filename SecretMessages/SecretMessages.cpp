@@ -20,7 +20,7 @@ uint16_t merge_8_bit_to_16(uint8_t first_half, uint8_t second_half) {
 }
 
 void split_16_bit_to_8(uint16_t& number, uint8_t& first_half, uint8_t& second_half) {
-	first_half = (number >> 8); 
+	first_half = ((number >> 8) & 0b11111111);
 	second_half = (number & 0b11111111);
 }
 
