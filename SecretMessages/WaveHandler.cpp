@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <bitset>
 
 WaveHandler::WaveHandler()
 {
@@ -124,31 +125,77 @@ void WaveHandler::Read_2(std::string path)
 		temp += wav.get();
 	}
 	cout << "Format: " << temp << "\n";
-
-	temp.clear();
 	
 
 
 
 	wav.seekg(12);
+	temp.clear();
 	for (int i = 0; i < 4; ++i) {
 		temp += wav.get();
 	}
 	cout << "SubChunk1ID: " << temp << "\n";
 
 
+	wav.seekg(40);
+	char* chuncksize_b = new char[4];
+	wav.get(chuncksize_b, 4);
+	unsigned long chuncksize_c = (chuncksize_b[3] << 24) | (chuncksize_b[2] << 16) | (chuncksize_b[1] << 8) | chuncksize_b[0];
+	cout << "SubChunk2Size: " << chuncksize_c << "\n";
 
-}
-
-
-void read_16_bit_wav_little_endian() {
+	wav.seekg(44);
 	std::vector<char> data;
-	std::vector<double> rawSignal;
+	for (int i = 0; i < 357936; ++i) {
+		data.push_back(wav.get());
+	}
 
+	std::vector<double> rawSignal;
+	std::vector<bitset<16>> bits;
+
+	
 	for (int i = 0; i < data.size(); i += 2)
 	{
 		int c = (data[i + 1] << 8) | data[i];
-		double t = c / 32768.0;
-		rawSignal.push_back(t);
+		bitset<16> bit = bitset<16>(c);
+		bits.push_back(bit);
+		//double t = c / 32768.0;
+		rawSignal.push_back(c);
 	}
+
+	std::vector<bitset<8>> result;
+	string set;
+	for (int i = 0; i < bits.size(); i += 16) {
+		int temp = (bits[i].test(15));
+		set += std::to_string(temp);
+		if (set.size() >= 8) {
+			bitset<8> bit = bitset<8>(set[0]);
+			result.push_back(bit);
+			set.clear();
+		}
+	}
+
+	string answer;
+	for (auto& c : result) {
+		unsigned long i = c.to_ulong();
+		if (i <= CHAR_MAX)
+			answer+= static_cast<char>(i);
+	}
+	std::vector<bitset<8>> result2;
+	set.clear();
+	for (int i = 0; i < answer.size(); i += 16) {
+		set += answer[i];
+		if (set.size() >= 8) {
+			bitset<8> bit = bitset<8>(set[0]);
+			result2.push_back(bit);
+			set.clear();
+		}
+	}
+
+	string answer2;
+	for (auto& c : result2) {
+		unsigned long i = c.to_ulong();
+		if (i <= CHAR_MAX)
+			answer2 += static_cast<char>(i);
+	}
+
 }
