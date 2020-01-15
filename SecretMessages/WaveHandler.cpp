@@ -418,11 +418,6 @@ void WaveHandler::Read_4(std::string path)
 		}
 	}
 	cout << "Counted: " << counter << "\n";
-
-
-
-
-
 }
 
 void WaveHandler::Write(std::string path, std::string message)
