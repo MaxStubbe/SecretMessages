@@ -191,6 +191,62 @@ void WaveHandler::Read_2(std::string path)
 
 }
 
+bool utf8_check_is_valid(const std::string& string)
+{
+	int c, i, ix, n, j;
+	for (i = 0, ix = string.length(); i < ix; i++)
+	{
+		c = (unsigned char)string[i];
+		//if (c==0x09 || c==0x0a || c==0x0d || (0x20 <= c && c <= 0x7e) ) n = 0; // is_printable_ascii
+		if (0x00 <= c && c <= 0x7f) n = 0; // 0bbbbbbb
+		else if ((c & 0xE0) == 0xC0) n = 1; // 110bbbbb
+		else if (c == 0xed && i < (ix - 1) && ((unsigned char)string[i + 1] & 0xa0) == 0xa0) return false; //U+d800 to U+dfff
+		else if ((c & 0xF0) == 0xE0) n = 2; // 1110bbbb
+		else if ((c & 0xF8) == 0xF0) n = 3; // 11110bbb
+		//else if (($c & 0xFC) == 0xF8) n=4; // 111110bb //byte 5, unnecessary in 4 byte UTF-8
+		//else if (($c & 0xFE) == 0xFC) n=5; // 1111110b //byte 6, unnecessary in 4 byte UTF-8
+		else return false;
+		for (j = 0; j < n && i < ix; j++) { // n bytes matching 10bbbbbb follow ?
+			if ((++i == ix) || (((unsigned char)string[i] & 0xC0) != 0x80))
+				return false;
+		}
+	}
+	return true;
+}
+
+void GetUnicodeChar(unsigned int code, char chars[5]) {
+	if (code <= 0x7F) {
+		chars[0] = (code & 0x7F); chars[1] = '\0';
+	}
+	else if (code <= 0x7FF) {
+		// one continuation byte
+		chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
+		chars[0] = 0xC0 | (code & 0x1F); chars[2] = '\0';
+	}
+	else if (code <= 0xFFFF) {
+		// two continuation bytes
+		chars[2] = 0x80 | (code & 0x3F); code = (code >> 6);
+		chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
+		chars[0] = 0xE0 | (code & 0xF); chars[3] = '\0';
+	}
+	else if (code <= 0x10FFFF) {
+		// three continuation bytes
+		chars[3] = 0x80 | (code & 0x3F); code = (code >> 6);
+		chars[2] = 0x80 | (code & 0x3F); code = (code >> 6);
+		chars[1] = 0x80 | (code & 0x3F); code = (code >> 6);
+		chars[0] = 0xF0 | (code & 0x7); chars[4] = '\0';
+	}
+	else {
+		// unicode replacement character
+		chars[2] = 0xEF; chars[1] = 0xBF; chars[0] = 0xBD;
+		chars[3] = '\0';
+	}
+
+}
+
+
+
+
 void WaveHandler::Read_3(std::string path)
 {
 	//---LOADING THE FILE---//
@@ -232,104 +288,54 @@ void WaveHandler::Read_3(std::string path)
 		}
 	}
 
+
+
+	//---READING THE MESSAGE---//
+	//Step 1: Keep reading till you find a null byte (0000 0000).
+	//Step 2: Check if message is UTF-8. If yes: done, if no:  clear currently read bytes and go to step 1.
 	int counter = 0;
 	string answer;
-	for (auto& current_byte : result) {
-		if (current_byte.test(7) == 1) {
-			//extra byte needed
-		}
-		unsigned long i = current_byte.to_ulong();
-		if (i <= CHAR_MAX) {
-			char c = static_cast<char>(i);
-			if (i == '\0') {
-				if(answer.size() > 5)
+
+	for (int i = 0; i < result.size(); i += 1) {
+		
+		bitset<8> current_byte = result[i];
+		unsigned long nmbr = current_byte.to_ulong();
+		//if (current_byte.test(7) == 1) {
+		//	//extra byte needed
+		//	if (current_byte.test(6) == 1) {
+		//		//extra byte needed
+		//		if (current_byte.test(5) == 1) {
+		//			//extra byte needed
+		//			bitset<8> fourth_byte = result[i + 3];//use 3 of these
+		//		}
+		//		bitset<8> third_byte = result[i + 2];//use 4 of these
+		//	}
+		//	bitset<8> second_byte = result[i+1];//use 5 of these
+		//}
+		//else {
+		//	nmbr = current_byte.to_ulong();
+		//}
+		
+
+		if (nmbr <= CHAR_MAX) {
+			char c = static_cast<char>(nmbr);
+			char* temp = new char[5];
+			GetUnicodeChar(nmbr, temp);
+			if (nmbr == '\0') {
+				if(utf8_check_is_valid(answer) && answer.size() > 1)
 					cout << answer << "\n";
 				answer.clear();
 				counter++;
 			}
-			answer += c;
+			else {
+				answer += c;
+			}
 		}
 	}
 	cout << "Counted: " << counter << "\n";
 
 
 
-	//---READING THE MESSAGE---//
-	//Step 1: Keep reading till you find a null byte (0000 0000).
-	//Step 2: Check if message is UTF-8. If yes: done, if no:  clear currently read bytes and go to step 1.
-
-
-
-}
-
-std::string IntToUTF8String(int convertMe) {
-	if (convertMe == 0)
-		return " ";
-	if ((convertMe <= 0x7F) && (convertMe > 0x00)) {
-
-		std::string out(".");
-
-		std::bitset<8> x(convertMe);
-
-		unsigned long l = x.to_ulong();
-		unsigned char c = static_cast<unsigned char>(l);
-		out[0] = c;
-
-		return out;
-
-	}
-	else if ((convertMe >= 0x80) && (convertMe <= 0x07FF)) {
-
-		std::string out("..");
-
-		int firstShift = (convertMe >> 0x06) ^ 0xC0;
-		int secondShift = ((convertMe ^ 0xFFC0) | 0x80) & ~0x40;
-
-		std::bitset<8> first(firstShift);
-		std::bitset<8> last(secondShift);
-
-
-		unsigned long l = first.to_ulong();
-		unsigned char c = static_cast<unsigned char>(l);
-		out[0] = c;
-
-		unsigned long ltwo = last.to_ulong();
-		unsigned char ctwo = static_cast<unsigned char>(ltwo);
-		out[1] = ctwo;
-
-		return out;
-
-	}
-	else if ((convertMe >= 0x0800) && (convertMe <= 0xFFFF)) {
-
-
-		std::string out("...");
-
-		int firstShift = ((convertMe ^ 0xFC0FFF) >> 0x0C) | 0xE0;
-		int secondShift = (((convertMe ^ 0xFFF03F) >> 0x06) | 0x80) & ~0x40;
-		int thirdShift = ((convertMe ^ 0xFFFC0) | 0x80) & ~0x40;
-
-		std::bitset<8> first(firstShift);
-		std::bitset<8> second(secondShift);
-		std::bitset<8> third(thirdShift);
-
-		unsigned long lone = first.to_ulong();
-		unsigned char cone = static_cast<unsigned char>(lone);
-		out[0] = cone;
-
-		unsigned long ltwo = second.to_ulong();
-		unsigned char ctwo = static_cast<unsigned char>(ltwo);
-		out[1] = ctwo;
-
-		unsigned long lthree = third.to_ulong();
-		unsigned char cthree = static_cast<unsigned char>(lthree);
-		out[2] = cthree;
-
-		return out;
-
-	}
-	else {
-		return " ";
-	}
+	
 
 }
