@@ -279,7 +279,7 @@ void WaveHandler::Read_3(std::string path)
 	std::vector<bitset<8>> result;
 	string set;
 	for (int i = 0; i < bits.size(); i += 1) {
-		int temp = (bits[i].test(0));
+		int temp = (bits[i].test(15));
 		set += std::to_string(temp);
 		if (set.size() >= 8) {
 			bitset<8> bit = bitset<8>(set);
@@ -322,8 +322,11 @@ void WaveHandler::Read_3(std::string path)
 			char* temp = new char[5];
 			GetUnicodeChar(nmbr, temp);
 			if (nmbr == '\0') {
-				if(utf8_check_is_valid(answer) && answer.size() > 1)
-					cout << answer << "\n";
+				if (utf8_check_is_valid(answer) && answer.size() > 1) {
+					if (answer == "Test String For Ya Boii") {
+						cout << answer << "\n";
+					}
+				}
 				answer.clear();
 				counter++;
 			}
@@ -337,5 +340,67 @@ void WaveHandler::Read_3(std::string path)
 
 
 	
+
+}
+
+void WaveHandler::Write(std::string path, std::string message)
+{
+	//---LOADING THE FILE---//
+	//Step 1: Read the header.
+		//SKIP THIS ONE FOR NOW
+	//Step 2: Read all data and put it in a vector
+	using namespace std;
+	ifstream wav{ path,ifstream::binary };
+	ofstream wav_out{ "test.wav",ifstream::binary };
+
+	//Write the header
+	char* buffer = new char[44];
+	wav.read(buffer, 44);
+	wav_out.write(buffer, 44);
+
+
+
+	//Find out the chunksize
+	wav.seekg(40);
+	char* chuncksize = new char[4];
+	wav.get(chuncksize, 4);
+	unsigned long data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	cout << "Data Size: " << data_size << "\n";
+
+	//Put data in a vector of 16 bitsets
+	wav.seekg(44);
+	std::vector<char> data;
+	for (int i = 0; i < data_size; ++i) {
+		data.push_back(wav.get());
+	}
+
+	std::vector<bitset<8>> bits;
+	for (int i = 0; i < message.size(); i += 1) {
+		bits.push_back(bitset<8>(message[i]));
+	}
+	bits.push_back(bitset<8>('\0'));
+	int counter = 0;
+	int offset = 0;
+	for (int i = 0; i < data.size() && counter < bits.size(); i += 2)
+	{
+		char bit = data[i];
+
+		bitset<8> bit_set = bitset<8>(bit);
+		if (bit_set.test(7) != bits[counter].test(offset)) {
+			bit_set.flip(7);
+			data[i] = static_cast<char>(bit_set.to_ulong());
+		}
+
+		
+		++offset;
+		if (offset > 7) {
+			offset = 0;
+			++counter;
+		}
+	}
+
+
+	wav_out.write(&data[0], data_size);
+
 
 }

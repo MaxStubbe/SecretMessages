@@ -28,6 +28,7 @@ int main()
 	//std::cout << std::endl;
 
 	WaveHandler wavehandler = WaveHandler(); 
-	wavehandler.Read_3(wavefilepath);
+	wavehandler.Write(wavefilepath,"Test String For Ya Boii");
+	wavehandler.Read_3("test.wav");
 
 }
