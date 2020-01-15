@@ -19,6 +19,11 @@ uint16_t merge_8_bit_to_16(uint8_t first_half, uint8_t second_half) {
 	return (first_half << 8) | second_half;
 }
 
+void split_16_bit_to_8(uint16_t& number, uint8_t& first_half, uint8_t& second_half) {
+	first_half = (number >> 8); 
+	second_half = (number & 0b11111111);
+}
+
 void set_bit(uint16_t& number, int bit) {
 	number = number | (1 << bit);
 }
@@ -62,10 +67,14 @@ int main()
 	uint8_t v = 0b00000101;
 	uint8_t g = 0b10000000;
 	uint16_t gv = 0b1000000000000101;
+	uint8_t s1 = 0;
+	uint8_t s2 = 0;
 
 	auto temp = merge_8_bit_to_16(g, v);
 
 	bool t = test_bit(g, 6);
+
+	split_16_bit_to_8(gv, s1, s2);
 
 	WaveHandler wavehandler = WaveHandler(); 
 	//wavehandler.Write(wavefilepath,"Test String For Ya Boii");
