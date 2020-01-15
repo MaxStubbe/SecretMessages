@@ -26,11 +26,18 @@ typedef struct  AUDIODATA {
 	char                data[357936];
 }audio_data;
 
+
+
+
+
+
+
 class WaveHandler
 {
 public:
 	WaveHandler();
 	void Read(std::string path);
+	void Read_2(std::string path);
 };
 
 #endif

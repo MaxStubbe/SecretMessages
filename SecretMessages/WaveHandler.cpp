@@ -3,6 +3,7 @@
 #include "WaveHandler.h"
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 WaveHandler::WaveHandler()
 {
@@ -46,11 +47,15 @@ void WaveHandler::Read(std::string path)
 		uint64_t numSamples = wavHeader.ChunkSize / bytesPerSample; //How many samples are in the wav file?
 		static const uint16_t BUFFER_SIZE = 4096;
 		int8_t* buffer = new int8_t[BUFFER_SIZE];
+
+
+
 		while ((bytesRead = fread(buffer, sizeof buffer[0], BUFFER_SIZE / (sizeof buffer[0]), wavFile)) > 0)
 		{
 			/** DO SOMETHING WITH THE WAVE DATA HERE **/
 			cout << "Read " << bytesRead << " bytes." << endl;
 		}
+
 		delete[] buffer;
 		buffer = nullptr;
 		filelength = getFileSize(wavFile);
@@ -70,7 +75,80 @@ void WaveHandler::Read(std::string path)
 
 		cout << "Block align                :" << wavHeader.blockAlign << endl;
 		cout << "Data string                :" << wavHeader.Subchunk2ID[0] << wavHeader.Subchunk2ID[1] << wavHeader.Subchunk2ID[2] << wavHeader.Subchunk2ID[3] << endl;
+		
+
+
+
+		
+		//Fill data with actual data.
+		std::vector<char> data;
+
+
+
+
+		
+		std::vector<double> rawSignal;
+		int size = data.size();
+		for (int i = 0; i < size; i += 2)
+		{
+			int16_t c = (data[i + 1] << 8) | data[i];
+			double t = c / 32768.0;
+			rawSignal.push_back(t);
+		}
+	
+		std::cout << "test";
 	}
 	fclose(wavFile);
 }
 
+void WaveHandler::Read_2(std::string path)
+{
+	using namespace std;
+	ifstream wav{ path,ifstream::binary };
+	string temp;
+	for (int i = 0; i < 4; ++i) {
+		temp += wav.get();
+	}
+
+	cout << "ChunckID: " << temp << "\n";
+
+	
+	
+	//unsigned long chuncksize = (wav[4 + 1] << 8) | wav[4];;
+	char* chuncksize_a = new char[4];
+	wav.get(chuncksize_a, 4);
+	unsigned long chuncksize = (chuncksize_a[3] << 24) | (chuncksize_a[2] << 16) | (chuncksize_a[1] << 8) | chuncksize_a[0];
+	cout << "ChunckSize: " << chuncksize << "\n";
+	temp.clear();
+	for (int i = 0; i < 4; ++i) {
+		temp += wav.get();
+	}
+	cout << "Format: " << temp << "\n";
+
+	temp.clear();
+	
+
+
+
+	wav.seekg(12);
+	for (int i = 0; i < 4; ++i) {
+		temp += wav.get();
+	}
+	cout << "SubChunk1ID: " << temp << "\n";
+
+
+
+}
+
+
+void read_16_bit_wav_little_endian() {
+	std::vector<char> data;
+	std::vector<double> rawSignal;
+
+	for (int i = 0; i < data.size(); i += 2)
+	{
+		int c = (data[i + 1] << 8) | data[i];
+		double t = c / 32768.0;
+		rawSignal.push_back(t);
+	}
+}

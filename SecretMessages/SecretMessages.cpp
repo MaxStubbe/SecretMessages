@@ -4,7 +4,7 @@
 
 int main()
 {
-	const std::string wavefilepath = "D:/Avans/Minor/periode 2/C++2/eindopdracht/SecretMessages/SecretMessages/de-oude-schicht.wav";
+	const std::string wavefilepath = "de-oude-schicht.wav";
 
 	std::string input;
 	std::cout << "Pick wav file: ";
@@ -14,6 +14,6 @@ int main()
 	std::cout << std::endl;
 
 	WaveHandler wavehandler = WaveHandler(); 
-	wavehandler.Read(wavefilepath);
+	wavehandler.Read_2(wavefilepath);
 
 }
