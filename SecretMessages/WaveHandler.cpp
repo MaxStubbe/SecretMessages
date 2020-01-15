@@ -110,12 +110,8 @@ void WaveHandler::Read_2(std::string path)
 	for (int i = 0; i < 4; ++i) {
 		temp += wav.get();
 	}
-
 	cout << "ChunckID: " << temp << "\n";
 
-	
-	
-	//unsigned long chuncksize = (wav[4 + 1] << 8) | wav[4];;
 	char* chuncksize_a = new char[4];
 	wav.get(chuncksize_a, 4);
 	unsigned long chuncksize = (chuncksize_a[3] << 24) | (chuncksize_a[2] << 16) | (chuncksize_a[1] << 8) | chuncksize_a[0];
@@ -125,9 +121,6 @@ void WaveHandler::Read_2(std::string path)
 		temp += wav.get();
 	}
 	cout << "Format: " << temp << "\n";
-	
-
-
 
 	wav.seekg(12);
 	temp.clear();
@@ -143,9 +136,10 @@ void WaveHandler::Read_2(std::string path)
 	unsigned long chuncksize_c = (chuncksize_b[3] << 24) | (chuncksize_b[2] << 16) | (chuncksize_b[1] << 8) | chuncksize_b[0];
 	cout << "SubChunk2Size: " << chuncksize_c << "\n";
 
-	wav.seekg(44);
+	//Put data in a array
+	//wav.seekg(44);
 	std::vector<char> data;
-	for (int i = 0; i < 357936; ++i) {
+	for (int i = 0; i < chuncksize_c; ++i) {
 		data.push_back(wav.get());
 	}
 
@@ -155,6 +149,10 @@ void WaveHandler::Read_2(std::string path)
 	
 	for (int i = 0; i < data.size(); i += 2)
 	{
+
+		auto test = bitset<8>(data[i]);
+		auto test2 = bitset<8>(data[i + 1]);
+		auto temp = test | test2;
 		int c = (data[i + 1] << 8) | data[i];
 		bitset<16> bit = bitset<16>(c);
 		bits.push_back(bit);
@@ -167,70 +165,171 @@ void WaveHandler::Read_2(std::string path)
 		int temp = (bits[i].test(15));
 		set += std::to_string(temp);
 		if (set.size() >= 8) {
-			bitset<8> bit = bitset<8>(set[0]);
+			bitset<8> bit = bitset<8>(set);
 			result.push_back(bit);
 			set.clear();
 		}
 	}
 
-	//if first bit is 0, then its a char
-	//if first is 1 and second is 0, then a second set is needed
-	//if first 3 bits are 110 then 2 sets of bits are needed
+	
 
-
-
+	int counter = 0;
 	string answer;
-	for (auto& c : result) {
-		if (c.test(0) == 0) {
-			//character
+	for (auto& current_byte : result) {
+		unsigned long i = current_byte.to_ulong();
+		if (i <= CHAR_MAX) {
+			char c = static_cast<char>(i);
+			if (i == '\0') {
+				cout << answer << "\n";
+				answer.clear();
+				counter++;
+			}
+			answer += c;
 		}
-
-		unsigned long i = c.to_ulong();
-		if (i <= CHAR_MAX)
-			answer+= static_cast<char>(i);
 	}
-	std::vector<bitset<8>> result2;
-	set.clear();
-	for (int i = 0; i < answer.size(); i += 1) {
-		set += answer[i];
+	cout << "Counted: " << counter << "\n";
+
+}
+
+void WaveHandler::Read_3(std::string path)
+{
+	//---LOADING THE FILE---//
+	//Step 1: Read the header.
+		//SKIP THIS ONE FOR NOW
+	//Step 2: Read all data and put it in a vector
+	using namespace std;
+	ifstream wav{ path,ifstream::binary };
+
+	//Find out the chunksize
+	wav.seekg(40);
+	char* chuncksize = new char[4];
+	wav.get(chuncksize, 4);
+	unsigned long data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	cout << "Data Size: " << data_size << "\n";
+
+	//Put data in a vector of 16 bitsets
+	wav.seekg(44);
+	std::vector<bitset<16>> bits;
+	string temp;
+	for (int i = 0; i < data_size; i +=2) {//16 bit thingies
+		int8_t temp = wav.get();
+		int8_t temp2 = wav.get();
+		int16_t c = temp2 | (temp << 8);
+		bitset<16> bit = bitset<16>(c);
+		bits.push_back(bit);
+	}
+	
+	//Gather all the most insignificant bits.
+	std::vector<bitset<8>> result;
+	string set;
+	for (int i = 0; i < bits.size(); i += 1) {
+		int temp = (bits[i].test(0));
+		set += std::to_string(temp);
 		if (set.size() >= 8) {
-			bitset<8> bit = bitset<8>(set[0]);
-			result2.push_back(bit);
+			bitset<8> bit = bitset<8>(set);
+			result.push_back(bit);
 			set.clear();
 		}
 	}
 
-	string answer2;
-	for (auto& c : result2) {
-		unsigned long i = c.to_ulong();
-		if (i <= CHAR_MAX)
-			answer2 += static_cast<char>(i);
+	int counter = 0;
+	string answer;
+	for (auto& current_byte : result) {
+		if (current_byte.test(7) == 1) {
+			//extra byte needed
+		}
+		unsigned long i = current_byte.to_ulong();
+		if (i <= CHAR_MAX) {
+			char c = static_cast<char>(i);
+			if (i == '\0') {
+				if(answer.size() > 5)
+					cout << answer << "\n";
+				answer.clear();
+				counter++;
+			}
+			answer += c;
+		}
 	}
+	cout << "Counted: " << counter << "\n";
+
+
+
+	//---READING THE MESSAGE---//
+	//Step 1: Keep reading till you find a null byte (0000 0000).
+	//Step 2: Check if message is UTF-8. If yes: done, if no:  clear currently read bytes and go to step 1.
+
+
 
 }
 
+std::string IntToUTF8String(int convertMe) {
+	if (convertMe == 0)
+		return " ";
+	if ((convertMe <= 0x7F) && (convertMe > 0x00)) {
 
-int number_of_sets_needed(std::bitset<8> bits) {
-	if (bits.test(7)) { //Check 1000 0000
-		if (bits.test(6)) { //Check 1100 0000
-			if (bits.test(5)) { //Check 1110 0000
-				if (bits.test(4)) { //Check 1111 0000
+		std::string out(".");
 
-				}
-				else {
-					return 4;
-				}
-			}
-			else {
-				return 3;
-			}
-		}
-		else {
-			return 2;
-		}
+		std::bitset<8> x(convertMe);
+
+		unsigned long l = x.to_ulong();
+		unsigned char c = static_cast<unsigned char>(l);
+		out[0] = c;
+
+		return out;
+
+	}
+	else if ((convertMe >= 0x80) && (convertMe <= 0x07FF)) {
+
+		std::string out("..");
+
+		int firstShift = (convertMe >> 0x06) ^ 0xC0;
+		int secondShift = ((convertMe ^ 0xFFC0) | 0x80) & ~0x40;
+
+		std::bitset<8> first(firstShift);
+		std::bitset<8> last(secondShift);
+
+
+		unsigned long l = first.to_ulong();
+		unsigned char c = static_cast<unsigned char>(l);
+		out[0] = c;
+
+		unsigned long ltwo = last.to_ulong();
+		unsigned char ctwo = static_cast<unsigned char>(ltwo);
+		out[1] = ctwo;
+
+		return out;
+
+	}
+	else if ((convertMe >= 0x0800) && (convertMe <= 0xFFFF)) {
+
+
+		std::string out("...");
+
+		int firstShift = ((convertMe ^ 0xFC0FFF) >> 0x0C) | 0xE0;
+		int secondShift = (((convertMe ^ 0xFFF03F) >> 0x06) | 0x80) & ~0x40;
+		int thirdShift = ((convertMe ^ 0xFFFC0) | 0x80) & ~0x40;
+
+		std::bitset<8> first(firstShift);
+		std::bitset<8> second(secondShift);
+		std::bitset<8> third(thirdShift);
+
+		unsigned long lone = first.to_ulong();
+		unsigned char cone = static_cast<unsigned char>(lone);
+		out[0] = cone;
+
+		unsigned long ltwo = second.to_ulong();
+		unsigned char ctwo = static_cast<unsigned char>(ltwo);
+		out[1] = ctwo;
+
+		unsigned long lthree = third.to_ulong();
+		unsigned char cthree = static_cast<unsigned char>(lthree);
+		out[2] = cthree;
+
+		return out;
 
 	}
 	else {
-		return 1;
+		return " ";
 	}
+
 }

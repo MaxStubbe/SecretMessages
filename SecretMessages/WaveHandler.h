@@ -1,12 +1,14 @@
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
-
 #ifndef __WaveHandler_h__
 #define __WaveHandler_h__
 
-typedef struct  WAV_HEADER {
-	char                RIFF[4];        // RIFF Header      Magic header
+#include <string>
+#include <stdio.h>
+#include <stdlib.h>
+#include <vector>
+#include <istream>
+
+typedef struct WAV_HEADER {
+	char                RIFF[4];        // RIFF Header
 	unsigned long       ChunkSize;      // RIFF Chunk Size  
 	char                WAVE[4];        // WAVE Header      
 	char                fmt[4];         // FMT header       
@@ -22,10 +24,9 @@ typedef struct  WAV_HEADER {
 
 }wav_hdr;
 
-typedef struct  AUDIODATA {
-	char                data[357936];
+typedef struct AUDIODATA {
+	std::vector<char>	data;
 }audio_data;
-
 
 
 
@@ -38,6 +39,7 @@ public:
 	WaveHandler();
 	void Read(std::string path);
 	void Read_2(std::string path);
+	void Read_3(std::string path);
 };
 
 #endif
