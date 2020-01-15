@@ -15,6 +15,10 @@ byte_order cur_byte_order() {
 		byte_order::little_endian;
 }
 
+uint16_t merge_8_bit_to_16(uint8_t first_half, uint8_t second_half) {
+	return (first_half << 8) | second_half;
+}
+
 void set_bit(uint16_t& number, int bit) {
 	number = number | (1 << bit);
 }
@@ -55,15 +59,11 @@ int main()
 	uint16_t y = 0b10100010;
 	uint16_t z = 0b10100101;
 	uint16_t w = 0b00001111;
-	uint16_t v = 0b00000101;
-	uint16_t g = 0b10000000;
+	uint8_t v = 0b00000101;
+	uint8_t g = 0b10000000;
+	uint16_t gv = 0b1000000000000101;
 
-	//flip_bit(x, 2);
-	//set_bit(y, 2);
-	reset_bit(x, 2);
-
-
-	and_bitmask(z, w);
+	auto temp = merge_8_bit_to_16(g, v);
 
 	bool t = test_bit(g, 6);
 
