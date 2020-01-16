@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <bitset>
+#include "Timer.cpp"
 
 WaveHandler::WaveHandler()
 {
@@ -267,7 +268,8 @@ void WaveHandler::Read_3(std::string path)
 	cout << "Data Size: " << data_size2 << "\n";
 
 	//Step 3: Read all data and put it in a vector
-
+		Timer t;
+		t.start();
 		//Optie 1
 		wav.seekg(44);
 		std::vector<bitset<8>> bits;
@@ -277,8 +279,10 @@ void WaveHandler::Read_3(std::string path)
 			bitset<8> bit = bitset<8>(temp);
 			bits.push_back(bit);
 		}
+		std::cout << " Time: " << t.elapsedMilliseconds() <<"\n";
 
-		//Optie 2
+		t.reset();
+		//Optie 2, Much Faster
 		wav.seekg(44);
 		char* data = new char[data_size];
 		wav.read(data, data_size);
@@ -287,7 +291,8 @@ void WaveHandler::Read_3(std::string path)
 			bitset<8> bit = bitset<8>((int8_t)(data[i]));
 			bits2.push_back(bit);
 		}
-
+		std::cout << " Time: " << t.elapsedMilliseconds() << "\n";
+		t.stop();
 
 
 
@@ -301,7 +306,7 @@ void WaveHandler::Read_3(std::string path)
 
 	
 	//Step 4: Gather all the most insignificant bits.
-
+		t.start();
 		//Optie 1
 		std::vector<bitset<8>> result;
 		string set;
@@ -313,6 +318,8 @@ void WaveHandler::Read_3(std::string path)
 				set.clear();
 			}
 		}
+		std::cout << " Time: " << t.elapsedMilliseconds() << "\n";
+		t.reset();
 
 		//Optie 2
 		std::vector<bitset<8>> result2;
@@ -325,6 +332,7 @@ void WaveHandler::Read_3(std::string path)
 				set2.clear();
 			}
 		}
+		std::cout << " Time: " << t.elapsedMilliseconds() << "\n";
 
 	//Step 5: Check for message
 	string answer;
