@@ -263,7 +263,7 @@ void WaveHandler::Read_3(std::string path)
 
 	wav.seekg(40);
 	char* chuncksize = new char[4];
-	wav.get(chuncksize, 4);
+	wav.read(chuncksize, 4);
 	unsigned long data_size2 = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
 	cout << "Data Size: " << data_size2 << "\n";
 
@@ -382,87 +382,157 @@ void WaveHandler::Read_3(std::string path)
 
 void WaveHandler::Read_4(std::string path)
 {
-	//---LOADING THE FILE---//
-//Step 1: Read the header.
-	//SKIP THIS ONE FOR NOW
-//Step 2: Read all data and put it in a vector
+	//Step 1: Load the file
 	using namespace std;
 	ifstream wav{ path,ifstream::binary };
 
-	//Find out the chunksize
-	//wav.seekg(68);
-	wav.seekg(42);
+	//Step 2: Read the header.
+	wav.seekg(36);
+	char* chuncksize_a = new char[5];
+	wav.get(chuncksize_a, 5);
+	cout << "Data Size: " << chuncksize_a << "\n";
+
+
+	wav.seekg(36);
+	char* chuncksize_c = new char[4];
+	wav.read(chuncksize_c, 4);
+	cout << "Data Size: " << chuncksize_c << "\n";
+
+	wav.seekg(36);
+	char* chuncksize_b = new char[5];
+	chuncksize_b[0] = wav.get();
+	chuncksize_b[1] = wav.get();
+	chuncksize_b[2] = wav.get();
+	chuncksize_b[3] = wav.get();
+	chuncksize_b[4] = '\0';
+	cout << "Data Size: " << chuncksize_b << "\n";
+
+	wav.seekg(40);
+	uint8_t* chuncksize_d = new uint8_t[4];
+	chuncksize_d[0] = wav.get();
+	chuncksize_d[1] = wav.get();
+	chuncksize_d[2] = wav.get();
+	chuncksize_d[3] = wav.get();
+	unsigned long data_size = (chuncksize_d[3] << 24) | (chuncksize_d[2] << 16) | (chuncksize_d[1] << 8) | chuncksize_d[0];
+
+
+	wav.seekg(40);
 	char* chuncksize = new char[4];
-	wav.get(chuncksize, 4);
-	unsigned long data_size = (chuncksize[0] << 24) | (chuncksize[1] << 16) | (chuncksize[2] << 8) | chuncksize[3];
-	cout << "Size: " << data_size << "\n";
+	wav.read(chuncksize, 4);
+	unsigned long data_size2 = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	cout << "Data Size: " << data_size2 << "\n";
 
-	//Put data in a vector of 16 bitsets
-	wav.seekg(88);
-	char* data = new char[data_size];
-	wav.get(data, data_size);
-
-
+	//Step 3: Read all data and put it in a vector
+	Timer t;
+	t.start();
+	//Optie 1
+	wav.seekg(44);
 	std::vector<bitset<8>> bits;
-	string temp;
-	for (int i = 0; i < data_size; i += 2) {//16 bit thingies
-		//int8_t temp = wav.get();
-		//int8_t temp2 = wav.get();
-		//int16_t c = //temp2 | (temp << 8);
-		bitset<8> bit = bitset<8>(data[i+1]);
+	for (int i = 0; i < data_size; i += 2) {
+		int8_t temp = wav.get();
+		int8_t temp2 = wav.get();
+		bitset<8> bit = bitset<8>(temp);
 		bits.push_back(bit);
 	}
+	std::cout << " Time: " << t.elapsedMilliseconds() << "\n";
 
-	//Gather all the most insignificant bits.
+	t.reset();
+	//Optie 2, Much Faster
+	wav.seekg(44);
+	char* data = new char[data_size];
+	wav.read(data, data_size);
+	std::vector<bitset<8>> bits2;
+	for (int i = 0; i < data_size; i += 2) {
+		bitset<8> bit = bitset<8>((int8_t)(data[i]));
+		bits2.push_back(bit);
+	}
+	std::cout << " Time: " << t.elapsedMilliseconds() << "\n";
+	t.stop();
+
+
+
+	//check if 1 and 2 are equal
+	for (int i = 0; i < bits2.size(); i += 1) {
+		if (bits[i] != bits2[i]) {
+			std::cout << "oof";
+		}
+	}
+
+
+
+	//Step 4: Gather all the most insignificant bits.
+	t.start();
+	//Optie 1
 	std::vector<bitset<8>> result;
 	string set;
 	for (int i = 0; i < bits.size(); i += 1) {
-		int temp = (bits[i].test(0));
-		set += std::to_string(temp);
+		set += std::to_string(bits[i].test(0));
 		if (set.size() >= 8) {
 			bitset<8> bit = bitset<8>(set);
 			result.push_back(bit);
 			set.clear();
 		}
 	}
+	std::cout << " Time: " << t.elapsedMilliseconds() << "\n";
+	t.reset();
 
+	//Optie 2
+	std::vector<bitset<8>> result2;
+	string set2;
+	for (int i = 0; i < bits2.size(); i += 1) {
+		set2 += std::to_string(bits2[i].test(0));
+		if (set2.size() >= 8) {
+			bitset<8> bit = bitset<8>(set2);
+			result2.push_back(bit);
+			set2.clear();
+		}
+	}
+	std::cout << " Time: " << t.elapsedMilliseconds() << "\n";
 
-
-	//---READING THE MESSAGE---//
-	//Step 1: Keep reading till you find a null byte (0000 0000).
-	//Step 2: Check if message is UTF-8. If yes: done, if no:  clear currently read bytes and go to step 1.
-	int counter = 0;
+	//Step 5: Check for message
 	string answer;
-
 	for (int i = 0; i < result.size(); i += 1) {
-
 		bitset<8> current_byte = result[i];
 		unsigned long nmbr = current_byte.to_ulong();
-
+		//TODO: FULL UTF-8 CHECK.
 		if (nmbr <= CHAR_MAX) {
 			char c = static_cast<char>(nmbr);
-			char* temp = new char[5];
-			GetUnicodeChar(nmbr, temp);
+			//Step 6: Keep reading till you find a null byte(0000 0000).
 			if (nmbr == '\0') {
+				//Step 7: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 1.
 				if (utf8_check_is_valid(answer) && answer.size() > 1) {
-					//if (answer == "Test String For Ya Boii") {
 					cout << answer << "\n";
-					//}
+					break;
 				}
 				answer.clear();
-				counter++;
 			}
 			else {
 				answer += c;
 			}
 		}
 	}
-	cout << "Counted: " << counter << "\n";
 
-
-
-
-
+	string answer2;
+	for (int i = 0; i < result2.size(); i += 1) {
+		bitset<8> current_byte = result2[i];
+		unsigned long nmbr = current_byte.to_ulong();
+		//TODO: FULL UTF-8 CHECK.
+		if (nmbr <= CHAR_MAX) {
+			char c = static_cast<char>(nmbr);
+			//Step 6: Keep reading till you find a null byte(0000 0000).
+			if (nmbr == '\0') {
+				//Step 7: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 1.
+				if (utf8_check_is_valid(answer2) && answer2.size() > 1) {
+					cout << answer2 << "\n";
+					break;
+				}
+				answer2.clear();
+			}
+			else {
+				answer2 += c;
+			}
+		}
+	}
 }
 
 void WaveHandler::Read_5(std::string path)
