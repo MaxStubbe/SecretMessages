@@ -10,9 +10,13 @@
 class FileHandler
 {
 public:
-	bool utf8_check_is_valid(const std::string& string);
-	void Read_WAV(std::string path);
-	void Write_WAV(std::string path, std::string message);
+	bool utf8_check_is_valid(const std::string& string) const;
+	void Read_WAV(std::string path) const;
+	void Write_WAV(std::string path_in, std::string path_out, std::string message) const;
+	void Read_AIFF(std::string path) const;
+	void Write_AIFF(std::string path_in, std::string path_out, std::string message) const;
+
+
 };
 
 #endif

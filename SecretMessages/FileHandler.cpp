@@ -5,11 +5,15 @@
 #include <vector>
 #include <bitset>
 
-void FileHandler::Read_WAV(std::string path)
+void FileHandler::Read_WAV(std::string path) const
 {
 	//Step 1: Load the file
 	using namespace std;
 	ifstream wav{ path, ifstream::binary };
+
+	if (wav.fail()) {
+		throw std::runtime_error("Failed to open: " + path);
+	}
 
 	//Step 2: Read the header.
 	wav.seekg(40);
@@ -71,30 +75,37 @@ void FileHandler::Read_WAV(std::string path)
 	}
 }
 
-void FileHandler::Write_WAV(std::string path, std::string message)
+void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::string message) const
 {
 	using namespace std;
-	ifstream wav{ path,ifstream::binary };
-	ofstream wav_out{ "test.wav",ifstream::binary };
+	ifstream wav_in{ path_in,ifstream::binary };
+
+	if (wav_in.fail()) {
+		throw std::runtime_error("Failed to open: " + path_in);
+	}
+
+	ofstream wav_out{ path_out,ifstream::binary };
+
+	if (wav_out.fail()) {
+		throw std::runtime_error("Failed to open or create: " + path_out);
+	}
 
 	//Write the header
 	char* buffer = new char[44];
-	wav.read(buffer, 44);
+	wav_in.read(buffer, 44);
 	wav_out.write(buffer, 44);
 
-
-
 	//Find out the chunksize
-	wav.seekg(40);
+	wav_in.seekg(40);
 	char* chuncksize = new char[4];
-	wav.read(chuncksize, 4);
+	wav_in.read(chuncksize, 4);
 	unsigned long data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
 	cout << "Data Size: " << data_size << "\n";
 
 	//Put data in a vector of 16 bitsets
-	wav.seekg(44);
+	wav_in.seekg(44);
 	char* data = new char[data_size];
-	wav.read(data, data_size);
+	wav_in.read(data, data_size);
 
 	//Code message to bits
 	std::vector<bitset<8>> bits;
@@ -133,7 +144,104 @@ void FileHandler::Write_WAV(std::string path, std::string message)
 	wav_out.write(data, data_size);
 }
 
-bool FileHandler::utf8_check_is_valid(const std::string& string)
+void FileHandler::Read_AIFF(std::string path) const
+{
+	//Step 1: Load the file
+	using namespace std;
+	ifstream wav{ path, ifstream::binary };
+
+	if (wav.fail()) {
+		throw std::runtime_error("Failed to open: " + path);
+	}
+
+	//Step 2: Read the header.
+	wav.seekg(0);
+	char* chuncksize3 = new char[4];
+	wav.read(chuncksize3, 4);
+	wav.seekg(4);
+	char* chuncksize = new char[4];
+	wav.read(chuncksize, 4);
+	uint32_t data_size = (chuncksize[0] << 24) | (chuncksize[1] << 16) | (chuncksize[2] << 8) | chuncksize[3];
+	
+	wav.seekg(8);
+	char* chuncksize4 = new char[4];
+	wav.read(chuncksize4, 4);
+
+	wav.seekg(12);
+	char* chuncksize5 = new char[4];
+	wav.read(chuncksize5, 4);
+	cout << chuncksize5 << "\n";
+
+	cout << "Data Size: " << data_size << "\n";
+	/*wav.seekg(4);
+	uint8_t* chuncksize_d = new uint8_t[4];
+	chuncksize_d[0] = wav.get();
+	chuncksize_d[1] = wav.get();
+	chuncksize_d[2] = wav.get();
+	chuncksize_d[3] = wav.get();
+	uint32_t data_size2 = (chuncksize_d[3] << 24) | (chuncksize_d[2] << 16) | (chuncksize_d[1] << 8) | chuncksize_d[0];
+	wav.seekg(0);
+	char* chuncksize2 = new char[80];
+	wav.read(chuncksize2, 80);
+
+	
+
+
+	wav.seekg(60);
+	char* chuncksize = new char[4];
+	wav.read(chuncksize, 4);
+	uint32_t data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	cout << "Data Size: " << data_size2 << "\n";*/
+
+	//Step 3: Read all data
+	wav.seekg(64);
+	char* data = new char[data_size];
+	wav.read(data, data_size);
+	std::vector<bitset<8>> bits2;
+	for (int i = 1; i < data_size; i += 2) {//Big endian, so use second part
+		bitset<8> bit = bitset<8>((int8_t)(data[i]));
+		bits2.push_back(bit);
+	}
+
+	std::vector<bitset<8>> result2;
+	string set2;
+	for (int i = 0; i < bits2.size(); i += 1) {
+		set2 += std::to_string(bits2[i].test(0));
+		if (set2.size() >= 8) {
+			bitset<8> bit = bitset<8>(set2);
+			result2.push_back(bit);
+			set2.clear();
+		}
+	}
+
+	string answer2;
+	for (int i = 0; i < result2.size(); i += 1) {
+		bitset<8> current_byte = result2[i];
+		unsigned long nmbr = current_byte.to_ulong();
+		//TODO: FULL UTF-8 CHECK.
+		if (nmbr <= CHAR_MAX) {
+			char c = static_cast<char>(nmbr);
+			//Step 6: Keep reading till you find a null byte(0000 0000).
+			if (nmbr == '\0') {
+				//Step 7: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 1.
+				if (utf8_check_is_valid(answer2) && answer2.size() > 1) {
+					cout << answer2 << "\n";
+					break;
+				}
+				answer2.clear();
+			}
+			else {
+				answer2 += c;
+			}
+		}
+	}
+}
+
+void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::string message) const
+{
+}
+
+bool FileHandler::utf8_check_is_valid(const std::string& string) const
 {
 	int c, i, ix, n, j;
 	for (i = 0, ix = string.length(); i < ix; i++)
