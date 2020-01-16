@@ -265,13 +265,13 @@ void WaveHandler::Read_3(std::string path)
 
 	//Put data in a vector of 16 bitsets
 	wav.seekg(44);
-	std::vector<bitset<16>> bits;
+	std::vector<bitset<8>> bits;
 	string temp;
 	for (int i = 0; i < data_size; i +=2) {//16 bit thingies
 		int8_t temp = wav.get();
 		int8_t temp2 = wav.get();
-		int16_t c = temp2 | (temp << 8);
-		bitset<16> bit = bitset<16>(c);
+		//int16_t c = //temp2 | (temp << 8);
+		bitset<8> bit = bitset<8>(temp);
 		bits.push_back(bit);
 	}
 	
@@ -279,7 +279,7 @@ void WaveHandler::Read_3(std::string path)
 	std::vector<bitset<8>> result;
 	string set;
 	for (int i = 0; i < bits.size(); i += 1) {
-		int temp = (bits[i].test(15));
+		int temp = (bits[i].test(0));
 		set += std::to_string(temp);
 		if (set.size() >= 8) {
 			bitset<8> bit = bitset<8>(set);
@@ -300,22 +300,6 @@ void WaveHandler::Read_3(std::string path)
 		
 		bitset<8> current_byte = result[i];
 		unsigned long nmbr = current_byte.to_ulong();
-		//if (current_byte.test(7) == 1) {
-		//	//extra byte needed
-		//	if (current_byte.test(6) == 1) {
-		//		//extra byte needed
-		//		if (current_byte.test(5) == 1) {
-		//			//extra byte needed
-		//			bitset<8> fourth_byte = result[i + 3];//use 3 of these
-		//		}
-		//		bitset<8> third_byte = result[i + 2];//use 4 of these
-		//	}
-		//	bitset<8> second_byte = result[i+1];//use 5 of these
-		//}
-		//else {
-		//	nmbr = current_byte.to_ulong();
-		//}
-		
 
 		if (nmbr <= CHAR_MAX) {
 			char c = static_cast<char>(nmbr);
@@ -418,6 +402,41 @@ void WaveHandler::Read_4(std::string path)
 		}
 	}
 	cout << "Counted: " << counter << "\n";
+}
+
+void WaveHandler::Read_5(std::string path)
+{//---LOADING THE FILE---//
+	//Step 1: Read the header.
+		//SKIP THIS ONE FOR NOW
+	//Step 2: Read all data and put it in a vector
+	using namespace std;
+	ifstream wav{ path,ifstream::binary };
+
+	//Find out the chunksize
+	wav.seekg(40);
+	char* chuncksize = new char[4];
+	wav.get(chuncksize, 4);
+	unsigned long data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	cout << "Data Size: " << data_size << "\n";
+
+	//Put data in a char*
+	wav.seekg(44);
+	char* data = new char[data_size];
+	wav.get(data, data_size);
+
+
+	//Loop through data, check every 2 bits.
+	for (int i = 0; i < data_size; i += 2) {
+		(((data[i] & (0x0001 << 15)) >> 15));//check the most left bit
+	}
+
+
+
+
+
+
+
+
 }
 
 void WaveHandler::Write(std::string path, std::string message)

@@ -41,6 +41,7 @@ public:
 	void Read_2(std::string path);
 	void Read_3(std::string path);
 	void Read_4(std::string path);
+	void Read_5(std::string path);
 	void Write(std::string path, std::string message);
 };
 
