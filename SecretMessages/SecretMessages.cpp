@@ -100,5 +100,6 @@ int main()
 	WaveHandler wavehandler = WaveHandler(); 
 	//wavehandler.Write(wavefilepath,"Test String For Ya Boii");
 	wavehandler.Read_3("de-oude-schicht.wav");
-	//wavehandler.Read_5("lounge1.wav");
+	//wavehandler.Read_3("lounge1.wav");
+	//wavehandler.Read_4("lounge1.aif");
 }

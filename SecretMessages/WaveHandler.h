@@ -38,6 +38,7 @@ class WaveHandler
 public:
 	WaveHandler();
 	void Read(std::string path);
+	void print_header(wav_hdr wavHeader);
 	void Read_2(std::string path);
 	void Read_3(std::string path);
 	void Read_4(std::string path);
