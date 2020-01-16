@@ -193,12 +193,13 @@ void FileHandler::Read_AIFF(std::string path) const
 					if (id[3] == 'D') {
 						std::cout << "Hurray! " << chunck_size << "\n" ;
 						ssnd_found = true;
-						data_size = chunck_size;
+						
 
 						char* of = new char[4];
 						wav.read(of, 4);
 						data_offset = (of[0] << 24) | (of[1] << 16) | (((uint8_t)of[2]) << 8) | of[3];
-
+						ssnd_pos = 12 + offset + 16 + data_offset;
+						data_size = chunck_size - data_offset - 8;
 					}
 				}
 			}
