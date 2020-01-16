@@ -18,7 +18,8 @@ int main()
 
 	WaveHandler wavehandler = WaveHandler(); 
 	FileHandler fh = FileHandler();
+	//wavehandler.Read("file-example_1mb-OUT.wav");
 	//fh.Write_WAV("file-example_1mb.wav","file-example_1mb-OUT.wav" ,  "Dit is een testbericht");
-	fh.Read_WAV("file-example_1mb-OUT.wav");
-	//fh.Read_AIFF("lounge1.aif");
+	//fh.Read_WAV("file-example_1mb-OUT.wav");
+	fh.Read_AIFF("lounge1.aif");
 }

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <bitset>
+#include "bit_manipulation.h"
 
 void FileHandler::Read_WAV(std::string path) const
 {
@@ -28,7 +29,7 @@ void FileHandler::Read_WAV(std::string path) const
 	wav.seekg(40);
 	char* chuncksize = new char[4];
 	wav.read(chuncksize, 4);
-	uint32_t data_size2 = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	uint32_t data_size2 = merge_8_bit_to_32_little_endian(chuncksize[3], chuncksize[2], chuncksize[1], chuncksize[0]);//(chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
 	std::cout << "Data Size: " << data_size2 << "\n";
 
 	//Step 3: Read all data
@@ -163,7 +164,7 @@ void FileHandler::Read_AIFF(std::string path) const
 	wav.seekg(4);
 	char* filesize = new char[4];
 	wav.read(filesize, 4);
-	uint32_t data_size_other = (filesize[0] << 24) | (filesize[1] << 16) | (filesize[2] << 8) | filesize[3];
+	uint32_t data_size_other = merge_8_bit_to_32_big_endian(filesize);// (filesize[0] << 24) | (filesize[1] << 16) | (filesize[2] << 8) | filesize[3];
 	
 	wav.seekg(8);
 	char* aiff = new char[4];
@@ -183,7 +184,7 @@ void FileHandler::Read_AIFF(std::string path) const
 
 		char* size = new char[4];
 		wav.read(size, 4);
-		uint32_t chunck_size = (size[0] << 24) | (size[1] << 16) | (((uint8_t )size[2]) << 8) | size[3];
+		uint32_t chunck_size = merge_8_bit_to_32_big_endian(size);// (size[0] << 24) | (size[1] << 16) | (((uint8_t)size[2]) << 8) | size[3];
 
 
 
