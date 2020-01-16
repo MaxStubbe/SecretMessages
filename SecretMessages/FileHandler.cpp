@@ -29,7 +29,7 @@ void FileHandler::Read_WAV(std::string path) const
 	char* chuncksize = new char[4];
 	wav.read(chuncksize, 4);
 	uint32_t data_size2 = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
-	cout << "Data Size: " << data_size2 << "\n";
+	std::cout << "Data Size: " << data_size2 << "\n";
 
 	//Step 3: Read all data
 	wav.seekg(44);
@@ -63,7 +63,7 @@ void FileHandler::Read_WAV(std::string path) const
 			if (nmbr == '\0') {
 				//Step 7: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 1.
 				if (utf8_check_is_valid(answer2) && answer2.size() > 1) {
-					cout << answer2 << "\n";
+					std::cout << answer2 << "\n";
 					break;
 				}
 				answer2.clear();
@@ -100,7 +100,7 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 	char* chuncksize = new char[4];
 	wav_in.read(chuncksize, 4);
 	unsigned long data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
-	cout << "Data Size: " << data_size << "\n";
+	std::cout << "Data Size: " << data_size << "\n";
 
 	//Put data in a vector of 16 bitsets
 	wav_in.seekg(44);
@@ -156,47 +156,62 @@ void FileHandler::Read_AIFF(std::string path) const
 
 	//Step 2: Read the header.
 	wav.seekg(0);
-	char* chuncksize3 = new char[4];
-	wav.read(chuncksize3, 4);
+	char* form = new char[4];
+	wav.read(form, 4);
+	std::cout << form[0] << form[1] << form[2] << form[3] << "\n";
+
 	wav.seekg(4);
-	char* chuncksize = new char[4];
-	wav.read(chuncksize, 4);
-	uint32_t data_size = (chuncksize[0] << 24) | (chuncksize[1] << 16) | (chuncksize[2] << 8) | chuncksize[3];
+	char* filesize = new char[4];
+	wav.read(filesize, 4);
+	uint32_t data_size_other = (filesize[0] << 24) | (filesize[1] << 16) | (filesize[2] << 8) | filesize[3];
 	
 	wav.seekg(8);
-	char* chuncksize4 = new char[4];
-	wav.read(chuncksize4, 4);
+	char* aiff = new char[4];
+	wav.read(aiff, 4);
+	std::cout << aiff[0] << aiff[1] << aiff[2] << aiff[3] << "\n";
 
-	wav.seekg(12);
-	char* chuncksize5 = new char[4];
-	wav.read(chuncksize5, 4);
-	cout << chuncksize5 << "\n";
+	bool ssnd_found = false;
+	int offset = 0;
+	int ssnd_pos = 0;
+	uint32_t data_size;
+	uint32_t data_offset = 0;
+	while (!ssnd_found) {
+		wav.seekg(12+offset);
+		char* id = new char[4];
+		wav.read(id, 4);
+		std::cout << id[0] << id[1] << id[2] << id[3] << "\n";
 
-	cout << "Data Size: " << data_size << "\n";
-	/*wav.seekg(4);
-	uint8_t* chuncksize_d = new uint8_t[4];
-	chuncksize_d[0] = wav.get();
-	chuncksize_d[1] = wav.get();
-	chuncksize_d[2] = wav.get();
-	chuncksize_d[3] = wav.get();
-	uint32_t data_size2 = (chuncksize_d[3] << 24) | (chuncksize_d[2] << 16) | (chuncksize_d[1] << 8) | chuncksize_d[0];
-	wav.seekg(0);
-	char* chuncksize2 = new char[80];
-	wav.read(chuncksize2, 80);
-
-	
+		char* size = new char[4];
+		wav.read(size, 4);
+		uint32_t chunck_size = (size[0] << 24) | (size[1] << 16) | (((uint8_t )size[2]) << 8) | size[3];
 
 
-	wav.seekg(60);
-	char* chuncksize = new char[4];
-	wav.read(chuncksize, 4);
-	uint32_t data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
-	cout << "Data Size: " << data_size2 << "\n";*/
 
-	//Step 3: Read all data
-	wav.seekg(64);
+		if (id[0] == 'S') {
+			if (id[1] == 'S') {
+				if (id[2] == 'N') {
+					if (id[3] == 'D') {
+						std::cout << "Hurray! " << chunck_size << "\n" ;
+						ssnd_found = true;
+						data_size = chunck_size;
+
+						char* of = new char[4];
+						wav.read(of, 4);
+						data_offset = (of[0] << 24) | (of[1] << 16) | (((uint8_t)of[2]) << 8) | of[3];
+
+					}
+				}
+			}
+		}
+
+		offset += 8 + chunck_size;
+	}
+	wav.seekg(ssnd_pos);
 	char* data = new char[data_size];
 	wav.read(data, data_size);
+
+	std::cout << "Data Size: " << data_size << "\n";
+	
 	std::vector<bitset<8>> bits2;
 	for (int i = 1; i < data_size; i += 2) {//Big endian, so use second part
 		bitset<8> bit = bitset<8>((int8_t)(data[i]));
@@ -225,7 +240,7 @@ void FileHandler::Read_AIFF(std::string path) const
 			if (nmbr == '\0') {
 				//Step 7: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 1.
 				if (utf8_check_is_valid(answer2) && answer2.size() > 1) {
-					cout << answer2 << "\n";
+					std::cout << answer2 << "\n";
 					break;
 				}
 				answer2.clear();
