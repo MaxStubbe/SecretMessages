@@ -110,21 +110,21 @@ void FileHandler::Write_WAV(std::string path, std::string message)
 
 	//Put message in data.
 	int counter = 0;
-	int offset = 0;
+	int bit_id = 7;
 	for (int i = 0; i < data_size && counter < bits.size(); i += 2)
 	{
 		char bit = data[i];
 		uint8_t test = bit;
 		bitset<8> bit_set = bitset<8>(test);
-		if (bit_set.test(7) != bits[counter].test(offset)) {
-			bit_set.flip(7);
+		if (bit_set.test(0) != bits[counter].test(bit_id)) {
+			bit_set.flip(0);
 			data[i] = static_cast<char>(bit_set.to_ulong());
 		}
 
 
-		++offset;
-		if (offset > 7) {
-			offset = 0;
+		--bit_id;
+		if (bit_id < 0) {
+			bit_id = 7;
 			++counter;
 		}
 	}
