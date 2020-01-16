@@ -27,8 +27,6 @@ void FileHandler::Read_WAV(std::string path)
 	uint32_t data_size2 = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
 	cout << "Data Size: " << data_size2 << "\n";
 
-
-
 	//Step 3: Read all data
 	wav.seekg(44);
 	char* data = new char[data_size];
@@ -39,8 +37,6 @@ void FileHandler::Read_WAV(std::string path)
 		bits2.push_back(bit);
 	}
 	
-
-
 	std::vector<bitset<8>> result2;
 	string set2;
 	for (int i = 0; i < bits2.size(); i += 1) {
@@ -52,8 +48,6 @@ void FileHandler::Read_WAV(std::string path)
 		}
 	}
 	
-
-
 	string answer2;
 	for (int i = 0; i < result2.size(); i += 1) {
 		bitset<8> current_byte = result2[i];
@@ -79,7 +73,64 @@ void FileHandler::Read_WAV(std::string path)
 
 void FileHandler::Write_WAV(std::string path, std::string message)
 {
-	
+	using namespace std;
+	ifstream wav{ path,ifstream::binary };
+	ofstream wav_out{ "test.wav",ifstream::binary };
+
+	//Write the header
+	char* buffer = new char[44];
+	wav.read(buffer, 44);
+	wav_out.write(buffer, 44);
+
+
+
+	//Find out the chunksize
+	wav.seekg(40);
+	char* chuncksize = new char[4];
+	wav.read(chuncksize, 4);
+	unsigned long data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	cout << "Data Size: " << data_size << "\n";
+
+	//Put data in a vector of 16 bitsets
+	wav.seekg(44);
+	char* data = new char[data_size];
+	wav.read(data, data_size);
+
+	//Code message to bits
+	std::vector<bitset<8>> bits;
+	for (int i = 0; i < message.size(); i += 1) {
+		bits.push_back(bitset<8>(message[i]));
+	}
+	bits.push_back(bitset<8>('\0'));
+
+	for (int i = 0; i < message.size(); i += 1) {
+		std::cout << static_cast<char>(bits[i].to_ulong());
+	}
+	std::cout << "\n";
+
+	//Put message in data.
+	int counter = 0;
+	int offset = 0;
+	for (int i = 0; i < data_size && counter < bits.size(); i += 2)
+	{
+		char bit = data[i];
+		uint8_t test = bit;
+		bitset<8> bit_set = bitset<8>(test);
+		if (bit_set.test(7) != bits[counter].test(offset)) {
+			bit_set.flip(7);
+			data[i] = static_cast<char>(bit_set.to_ulong());
+		}
+
+
+		++offset;
+		if (offset > 7) {
+			offset = 0;
+			++counter;
+		}
+	}
+
+
+	wav_out.write(data, data_size);
 }
 
 bool FileHandler::utf8_check_is_valid(const std::string& string)

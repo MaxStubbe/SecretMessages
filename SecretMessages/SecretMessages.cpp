@@ -18,7 +18,9 @@ int main()
 
 	WaveHandler wavehandler = WaveHandler(); 
 	FileHandler fh = FileHandler();
-	fh.Read_WAV("de-oude-schicht.wav");
+	//fh.Read_WAV("de-oude-schicht.wav");
+	fh.Write_WAV("file-example_1mb.wav", "Dit is een testbericht");
+	fh.Read_WAV("test.wav");
 	//fh.Write_WAV("de-oude-schich.wav"," ");
 	//wavehandler.Read_4("de-oude-schicht.wav");
 	//wavehandler.Write(wavefilepath,"Test String For Ya Boii");

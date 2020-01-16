@@ -572,13 +572,9 @@ void WaveHandler::Read_5(std::string path)
 
 void WaveHandler::Write(std::string path, std::string message)
 {
-	//---LOADING THE FILE---//
-	//Step 1: Read the header.
-		//SKIP THIS ONE FOR NOW
-	//Step 2: Read all data and put it in a vector
 	using namespace std;
 	ifstream wav{ path,ifstream::binary };
-	ofstream wav_out{ "test.wav",ifstream::binary };
+	ofstream wav_out{ "test_2.wav",ifstream::binary };
 
 	//Write the header
 	char* buffer = new char[44];
@@ -606,6 +602,8 @@ void WaveHandler::Write(std::string path, std::string message)
 		bits.push_back(bitset<8>(message[i]));
 	}
 	bits.push_back(bitset<8>('\0'));
+
+
 	int counter = 0;
 	int offset = 0;
 	for (int i = 0; i < data.size() && counter < bits.size(); i += 2)
