@@ -82,63 +82,52 @@ void FileHandler::Read_WAV_optimized(std::string path) const
 	//Step 1: Load the file
 	using namespace std;
 	ifstream wav{ path, ifstream::binary };
-
 	if (wav.fail()) {
 		throw std::runtime_error("Failed to open: " + path);
 	}
 
-	//Step 2: Read the header.
-	wav.seekg(40);
-	uint8_t* chuncksize_d = new uint8_t[4];
-	chuncksize_d[0] = wav.get();
-	chuncksize_d[1] = wav.get();
-	chuncksize_d[2] = wav.get();
-	chuncksize_d[3] = wav.get();
-	uint32_t data_size = (chuncksize_d[3] << 24) | (chuncksize_d[2] << 16) | (chuncksize_d[1] << 8) | chuncksize_d[0];
-
-
+	//Step 2: Check the size of the data chunk.
 	wav.seekg(40);
 	char* chuncksize = new char[4];
 	wav.read(chuncksize, 4);
-	uint32_t data_size2 = merge_8_bit_to_32_little_endian(chuncksize[3], chuncksize[2], chuncksize[1], chuncksize[0]);//(chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
-	std::cout << "Data Size: " << data_size2 << "\n";
+	uint32_t data_size = merge_8_bit_to_32_little_endian(chuncksize[3], chuncksize[2], chuncksize[1], chuncksize[0]);//(chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	std::cout << "Data Size: " << data_size << "\n";
 
-	//Step 3: Read all data
+	//Step 3: Put all data from datachunk in a char* for easy acces.
 	wav.seekg(44);
 	char* data = new char[data_size];
 	wav.read(data, data_size);
 
-
+	//Step 4: Loop through all data, getting the most right bit of every left byte. (Little Endian)
 	std::vector<bitset<8>> result;
-	string set;
-	for (int i = 0; i < data_size; i += 2) {
+	string set;						//Use string because they can easily be converted to bitsets, and allows to put the bits in the right order very easy.
+	for (int i = 0; i < data_size; i += 2) { //SKip every right byte.
 		set += std::to_string(bitset<8>((int8_t)(data[i])).test(0));
 		if (set.size() >= 8) {
 			bitset<8> bit = bitset<8>(set);
 			result.push_back(bit);
 			set.clear();
 		}
-
 	}
 
-	string answer2;
+	//Step 5: Loop through all the newly made bytes, checking for a utf-8 message.
+	string answer;
 	for (int i = 0; i < result.size(); i += 1) {
 		bitset<8> current_byte = result[i];
 		unsigned long nmbr = current_byte.to_ulong();
-		//TODO: FULL UTF-8 CHECK.
-		if (nmbr <= CHAR_MAX) {
+		if (nmbr <= CHAR_MAX) {//Step 5.1: Check if it can be a legit character.
 			char c = static_cast<char>(nmbr);
-			//Step 6: Keep reading till you find a null byte(0000 0000).
+			//Step 5.2: Keep reading till you find a null byte(0000 0000).
 			if (nmbr == '\0') {
-				//Step 7: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 1.
-				if (utf8_check_is_valid(answer2) && answer2.size() > 1) {
-					std::cout << answer2 << "\n";
+				//Step 5.3: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 5.
+				if (utf8_check_is_valid(answer) && answer.size() > 1) {
+					std::cout << answer << "\n";
 					break;
 				}
-				answer2.clear();
+				answer.clear();
 			}
 			else {
-				answer2 += c;
+				answer += c;
 			}
 		}
 	}
