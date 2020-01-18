@@ -154,44 +154,27 @@ void FileHandler::Read_AIFF(std::string path) const
 	//Step 1: Load the file
 	using namespace std;
 	ifstream aiff{ path, ifstream::binary };
-
 	if (aiff.fail()) {
 		throw std::runtime_error("Failed to open: " + path);
 	}
 
-	//Step 2: Read the header.
-	aiff.seekg(0);
-	char* form = new char[4];
-	aiff.read(form, 4);
-	std::cout << form[0] << form[1] << form[2] << form[3] << "\n";
-
-	aiff.seekg(4);
-	char* filesize = new char[4];
-	aiff.read(filesize, 4);
-	uint32_t data_size_other = merge_8_bit_to_32_big_endian(filesize);// (filesize[0] << 24) | (filesize[1] << 16) | (filesize[2] << 8) | filesize[3];
-	
-	aiff.seekg(8);
-	char* aiff_t = new char[4];
-	aiff.read(aiff_t, 4);
-	std::cout << aiff_t[0] << aiff_t[1] << aiff_t[2] << aiff_t[3] << "\n";
-
+	//Step 2: Read the header
 	bool ssnd_found = false;
 	int offset = 0;
 	int ssnd_pos = 0;
 	uint32_t data_size;
 	uint32_t data_offset = 0;
+	//Step 2.1: AIFF headers are not always the same size. Lopp through all blocks till SSND is reached
 	while (!ssnd_found) {
-		aiff.seekg(12+offset);
-		char* id = new char[4];
-		aiff.read(id, 4);
-		std::cout << id[0] << id[1] << id[2] << id[3] << "\n";
+		aiff.seekg((12+offset));
+		std::vector<char> id = std::vector<char>(4);
+		aiff.read(&id[0], 4);
 
-		char* size = new char[4];
-		aiff.read(size, 4);
-		uint32_t chunck_size = merge_8_bit_to_32_big_endian(size);// (size[0] << 24) | (size[1] << 16) | (((uint8_t)size[2]) << 8) | size[3];
+		std::vector<char> size = std::vector<char>(4);
+		aiff.read(&size[0], 4);
+		uint32_t chunck_size = merge_8_bit_to_32_big_endian(size);
 
-
-
+		//TODO: Make this better.
 		if (id[0] == 'S') {
 			if (id[1] == 'S') {
 				if (id[2] == 'N') {
@@ -199,10 +182,9 @@ void FileHandler::Read_AIFF(std::string path) const
 						std::cout << "Hurray! " << chunck_size << "\n" ;
 						ssnd_found = true;
 						
-
-						char* of = new char[4];
-						aiff.read(of, 4);
-						data_offset = (of[0] << 24) | (of[1] << 16) | (((uint8_t)of[2]) << 8) | of[3];
+						std::vector<char> of = std::vector<char>(4);
+						aiff.read(&of[0], 4);
+						data_offset = merge_8_bit_to_32_big_endian(of);
 						ssnd_pos = 12 + offset + 16 + data_offset;
 						data_size = chunck_size - data_offset - 8;
 					}
@@ -212,47 +194,43 @@ void FileHandler::Read_AIFF(std::string path) const
 
 		offset += 8 + chunck_size;
 	}
-	aiff.seekg(ssnd_pos);
-	char* data = new char[data_size];
-	aiff.read(data, data_size);
 
+	//Step 3: Put all data from datachunk in a char* for easy acces.
+	aiff.seekg(ssnd_pos);
+	std::vector<char> data = std::vector<char>(data_size);
+	aiff.read(&data[0], data_size);
 	std::cout << "Data Size: " << data_size << "\n";
 	
-	std::vector<bitset<8>> bits2;
-	for (int i = 1; i < data_size; i += 2) {//Big endian, so use second part
-		bitset<8> bit = bitset<8>((int8_t)(data[i]));
-		bits2.push_back(bit);
-	}
-
-	std::vector<bitset<8>> result2;
-	string set2;
-	for (int i = 0; i < bits2.size(); i += 1) {
-		set2 += std::to_string(bits2[i].test(0));
-		if (set2.size() >= 8) {
-			bitset<8> bit = bitset<8>(set2);
-			result2.push_back(bit);
-			set2.clear();
+	//Step 4: Loop through all data, getting the most right bit of every right byte. (Big Endian)
+	std::vector<bitset<8>> result;
+	string set;						//Use string because they can easily be converted to bitsets, and allows to put the bits in the right order very easy.
+	for (int i = 1; i < data_size; i += 2) { //Skip every left byte.
+		set += std::to_string(bitset<8>((int8_t)(data[i])).test(0));
+		if (set.size() >= 8) {
+			bitset<8> bit = bitset<8>(set);
+			result.push_back(bit);
+			set.clear();
 		}
 	}
 
-	string answer2;
-	for (int i = 0; i < result2.size(); i += 1) {
-		bitset<8> current_byte = result2[i];
+	//Step 5: Loop through all the newly made bytes, checking for a utf-8 message.
+	string answer;
+	for (int i = 0; i < result.size(); i += 1) {
+		bitset<8> current_byte = result[i];
 		unsigned long nmbr = current_byte.to_ulong();
-		//TODO: FULL UTF-8 CHECK.
-		if (nmbr <= CHAR_MAX) {
+		if (nmbr <= CHAR_MAX) { //Step 5.1: Check if it can be a legit character.
 			char c = static_cast<char>(nmbr);
-			//Step 6: Keep reading till you find a null byte(0000 0000).
+			//Step 5.2: Keep reading till you find a null byte(0000 0000).
 			if (nmbr == '\0') {
-				//Step 7: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 1.
-				if (utf8_check_is_valid(answer2) && answer2.size() > 1) {
-					std::cout << answer2 << "\n";
+				//Step 5.3: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 5.
+				if (utf8_check_is_valid(answer) && answer.size() > 1) {
+					std::cout << answer << "\n";
 					break;
 				}
-				answer2.clear();
+				answer.clear();
 			}
 			else {
-				answer2 += c;
+				answer += c;
 			}
 		}
 	}
@@ -260,51 +238,36 @@ void FileHandler::Read_AIFF(std::string path) const
 
 void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::string message) const
 {
+	//Step 1: Load the file
 	using namespace std;
 	ifstream aiff_in{ path_in,ifstream::binary };
-
 	if (aiff_in.fail()) {
 		throw std::runtime_error("Failed to open: " + path_in);
 	}
 
+	//Step 2: Create an output stream for the output file.
 	ofstream aiff_out{ path_out,ifstream::binary };
-
 	if (aiff_out.fail()) {
 		throw std::runtime_error("Failed to open or create: " + path_out);
 	}
 
-	aiff_in.seekg(0);
-	char* form = new char[4];
-	aiff_in.read(form, 4);
-	std::cout << form[0] << form[1] << form[2] << form[3] << "\n";
-
-	aiff_in.seekg(4);
-	char* filesize = new char[4];
-	aiff_in.read(filesize, 4);
-	uint32_t data_size_other = merge_8_bit_to_32_big_endian(filesize);// (filesize[0] << 24) | (filesize[1] << 16) | (filesize[2] << 8) | filesize[3];
-
-	aiff_in.seekg(8);
-	char* aiff_t = new char[4];
-	aiff_in.read(aiff_t, 4);
-	std::cout << aiff_t[0] << aiff_t[1] << aiff_t[2] << aiff_t[3] << "\n";
-
+	//Step 3: Read the header
 	bool ssnd_found = false;
 	int offset = 0;
 	int ssnd_pos = 0;
 	uint32_t data_size;
 	uint32_t data_offset = 0;
+	//Step 3.1: AIFF headers are not always the same size. Lopp through all blocks till SSND is reached
 	while (!ssnd_found) {
 		aiff_in.seekg(12 + offset);
-		char* id = new char[4];
-		aiff_in.read(id, 4);
-		std::cout << id[0] << id[1] << id[2] << id[3] << "\n";
+		std::vector<char> id = std::vector<char>(4);
+		aiff_in.read(&id[0], 4);
 
-		char* size = new char[4];
-		aiff_in.read(size, 4);
-		uint32_t chunck_size = merge_8_bit_to_32_big_endian(size);// (size[0] << 24) | (size[1] << 16) | (((uint8_t)size[2]) << 8) | size[3];
+		std::vector<char> size = std::vector<char>(4);
+		aiff_in.read(&size[0], 4);
+		uint32_t chunck_size = merge_8_bit_to_32_big_endian(size);
 
-
-
+		//TODO: Make this better
 		if (id[0] == 'S') {
 			if (id[1] == 'S') {
 				if (id[2] == 'N') {
@@ -313,9 +276,9 @@ void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::str
 						ssnd_found = true;
 
 
-						char* of = new char[4];
-						aiff_in.read(of, 4);
-						data_offset = (of[0] << 24) | (of[1] << 16) | (((uint8_t)of[2]) << 8) | of[3];
+						std::vector<char> of = std::vector<char>(4);
+						aiff_in.read(&of[0], 4);
+						data_offset = merge_8_bit_to_32_big_endian(of);
 						ssnd_pos = 12 + offset + 16 + data_offset;
 						data_size = chunck_size - data_offset - 8;
 					}
@@ -325,31 +288,33 @@ void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::str
 
 		offset += 8 + chunck_size;
 	}
-	aiff_in.seekg(ssnd_pos);
-	char* data = new char[data_size];
-	aiff_in.read(data, data_size);
 
+	//Step 4: Put all data from datachunk in a char* for easy acces.
+	aiff_in.seekg(ssnd_pos);
+	std::vector<char> data = std::vector<char>(data_size);
+	aiff_in.read(&data[0], data_size);
 	std::cout << "Data Size: " << data_size << "\n";
 
-	//Write the header
+	//Step 5: Write the header to teh output file.
 	aiff_in.seekg(0);
-	char* buffer = new char[ssnd_pos];
-	aiff_in.read(buffer, ssnd_pos);
-	aiff_out.write(buffer, ssnd_pos);
+	std::vector<char> buffer = std::vector<char>(ssnd_pos);
+	aiff_in.read(&buffer[0], ssnd_pos);
+	aiff_out.write(&buffer[0], ssnd_pos);
 
-	//Code message to bits
+	//Step 6: Code message to bits
 	std::vector<bitset<8>> bits;
 	for (int i = 0; i < message.size(); i += 1) {
 		bits.push_back(bitset<8>(message[i]));
 	}
 	bits.push_back(bitset<8>('\0'));
 
+	//Step 6.1: Print out the coded message for verification. (Debug part)
 	for (int i = 0; i < message.size(); i += 1) {
 		std::cout << static_cast<char>(bits[i].to_ulong());
 	}
 	std::cout << "\n";
 
-	//Put message in data.
+	//Step 7: Put message in the data.
 	int counter = 0;
 	int bit_id = 7;
 	for (int i = 1; i < data_size && counter < bits.size(); i += 2)
@@ -362,7 +327,6 @@ void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::str
 			data[i] = static_cast<char>(bit_set.to_ulong());
 		}
 
-
 		--bit_id;
 		if (bit_id < 0) {
 			bit_id = 7;
@@ -370,8 +334,13 @@ void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::str
 		}
 	}
 
-	//write data to file
-	aiff_out.write(data, data_size);
+	//Step 8: Put the data in the output file
+	aiff_out.write(&data[0], data_size);
+
+	//Step 9: Cleanup
+	//Streams get cleaned automaticaly.
+	//Vectors get cleaned automaticaly.
+	//Strings get cleaned automaticaly.
 }
 
 bool FileHandler::utf8_check_is_valid(const std::string& string) const
