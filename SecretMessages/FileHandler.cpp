@@ -6,77 +6,6 @@
 #include <bitset>
 #include "bit_manipulation.h"
 
-void FileHandler::Read_WAV(std::string path) const
-{
-	//Step 1: Load the file
-	using namespace std;
-	ifstream wav{ path, ifstream::binary };
-
-	if (wav.fail()) {
-		throw std::runtime_error("Failed to open: " + path);
-	}
-
-	//Step 2: Read the header.
-	wav.seekg(40);
-	uint8_t* chuncksize_d = new uint8_t[4];
-	chuncksize_d[0] = wav.get();
-	chuncksize_d[1] = wav.get();
-	chuncksize_d[2] = wav.get();
-	chuncksize_d[3] = wav.get();
-	uint32_t data_size = (chuncksize_d[3] << 24) | (chuncksize_d[2] << 16) | (chuncksize_d[1] << 8) | chuncksize_d[0];
-
-
-	wav.seekg(40);
-	char* chuncksize = new char[4];
-	wav.read(chuncksize, 4);
-	uint32_t data_size2 = merge_8_bit_to_32_little_endian(chuncksize[3], chuncksize[2], chuncksize[1], chuncksize[0]);//(chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
-	std::cout << "Data Size: " << data_size2 << "\n";
-
-	//Step 3: Read all data
-	wav.seekg(44);
-	char* data = new char[data_size];
-	wav.read(data, data_size);
-	std::vector<bitset<8>> bits2;
-	for (int i = 0; i < data_size; i += 2) {
-		bitset<8> bit = bitset<8>((int8_t)(data[i]));
-		bits2.push_back(bit);
-	}
-	
-	//Step 4: Put data in bitsets, getting the most right bit of every byte.
-	std::vector<bitset<8>> result2;
-	string set2;
-	for (int i = 0; i < bits2.size(); i += 1) {
-		set2 += std::to_string(bits2[i].test(0));
-		if (set2.size() >= 8) {
-			bitset<8> bit = bitset<8>(set2);
-			result2.push_back(bit);
-			set2.clear();
-		}
-	}
-	
-	string answer2;
-	for (int i = 0; i < result2.size(); i += 1) {
-		bitset<8> current_byte = result2[i];
-		unsigned long nmbr = current_byte.to_ulong();
-		//TODO: FULL UTF-8 CHECK.
-		if (nmbr <= CHAR_MAX) {
-			char c = static_cast<char>(nmbr);
-			//Step 6: Keep reading till you find a null byte(0000 0000).
-			if (nmbr == '\0') {
-				//Step 7: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 1.
-				if (utf8_check_is_valid(answer2) && answer2.size() > 1) {
-					std::cout << answer2 << "\n";
-					break;
-				}
-				answer2.clear();
-			}
-			else {
-				answer2 += c;
-			}
-		}
-	}
-}
-
 /*
 RAII (Resource Acquisition Is Initialization) Function.
 Resource = ifstream of path.
@@ -84,7 +13,7 @@ ifstream is initialized inside the function, thus binding its lifetime to the fu
 This is because the destructor of ifstream gets called when the function gets out of scope.
 So we can guarantee that if the function is done, other functions will be able to access the file with the same path.
 */
-void FileHandler::Read_WAV_optimized(std::string path) const
+void FileHandler::Read_WAV(std::string path) const
 {
 	//Step 1: Load the file
 	using namespace std;
@@ -139,7 +68,7 @@ void FileHandler::Read_WAV_optimized(std::string path) const
 		}
 	}
 
-	//Step 9: Cleanup.
+	//Step 6: Cleanup.
 	//Streams get cleaned automaticaly.
 	//Vectors get cleaned automaticaly.
 	//Strings get cleaned automaticaly.
@@ -161,21 +90,21 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 	}
 
 	//Step 3: Copy the header of the input file to the output file.
-	char* buffer = new char[44];
-	wav_in.read(buffer, 44);
-	wav_out.write(buffer, 44);
+	std::vector<char> buffer = std::vector<char>(44);
+	wav_in.read(&buffer[0], 44);
+	wav_out.write(&buffer[0], 44);
 
 	//Step 4: Find out the chunksize of the data of the input file.
 	wav_in.seekg(40);
-	char* chuncksize = new char[4];
-	wav_in.read(chuncksize, 4);
-	unsigned long data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	std::vector<char> chunk_size = std::vector<char>(44);
+	wav_in.read(&chunk_size[0], 4);
+	unsigned long data_size = (chunk_size[3] << 24) | (chunk_size[2] << 16) | (chunk_size[1] << 8) | chunk_size[0];
 	std::cout << "Data Size: " << data_size << "\n";
 
-	//Step 5: Put all data from datachunk in a char* for easy acces.
+	//Step 5: Put all data from datachunk in a vector<char> for easy acces.
 	wav_in.seekg(44);
-	char* data = new char[data_size];
-	wav_in.read(data, data_size);
+	std::vector<char> data = std::vector<char>(data_size);
+	wav_in.read(&data[0], data_size);
 
 	//Step 6: Code message to bits
 	std::vector<bitset<8>> bits;
@@ -212,14 +141,12 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 	}
 
 	//Step 8: Put the data in the output file.
-	wav_out.write(data, data_size);
+	wav_out.write(&data[0], data_size);
 
 	//Step 9: Cleanup
-	delete[] buffer;
-	delete[] chuncksize;
-	delete[] data;
-
-	//Streams get closed when function ends automaticly.
+	//Streams get cleaned automaticaly.
+	//Vectors get cleaned automaticaly.
+	//Strings get cleaned automaticaly.
 }
 
 void FileHandler::Read_AIFF(std::string path) const
