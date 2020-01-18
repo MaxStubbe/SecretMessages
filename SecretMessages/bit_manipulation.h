@@ -27,7 +27,7 @@ uint32_t merge_8_bit_to_32_big_endian(const std::vector<char>& data) {
 	if (data.size() != 4) {
 		throw "bit_manipulation error: vector is not size 4";
 	}
-	return merge_8_bit_to_32_big_endian(data[3], data[2], data[1], data[0]);//((uint8_t)data[0] << 24) | ((uint8_t)data[1] << 16) | ((uint8_t)data[2] << 8) | (uint8_t)data[3];
+	return merge_8_bit_to_32_big_endian(data[3], data[2], data[1], data[0]);
 }
 
 uint32_t merge_8_bit_to_32_little_endian(uint8_t first, uint8_t second, uint8_t third, uint8_t fourth) {
@@ -38,7 +38,7 @@ uint32_t merge_8_bit_to_32_little_endian(const std::vector<char>& data) {
 	if (data.size() != 4) {
 		throw "bit_manipulation error: vector is not size 4";
 	}
-	return merge_8_bit_to_32_little_endian(data[3], data[2], data[1], data[0]);// ((uint8_t)data[3] << 24) | ((uint8_t)data[2] << 16) | ((uint8_t)data[1] << 8) | (uint8_t)data[0];;
+	return merge_8_bit_to_32_little_endian(data[3], data[2], data[1], data[0]);
 }
 
 uint16_t merge_8_bit_to_16(uint8_t first_half, uint8_t second_half) {
