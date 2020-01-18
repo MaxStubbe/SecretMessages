@@ -77,6 +77,13 @@ void FileHandler::Read_WAV(std::string path) const
 	}
 }
 
+/*
+RAII (Resource Acquisition Is Initialization) Function.
+Resource = ifstream of path.
+ifstream is initialized inside the function, thus binding its lifetime to the function.
+This is because the destructor of ifstream gets called when the function gets out of scope.
+So we can guarantee that if the function is done, other functions will be able to access the file with the same path.
+*/
 void FileHandler::Read_WAV_optimized(std::string path) const
 {
 	//Step 1: Load the file

@@ -16,10 +16,7 @@ int main()
 
 	//std::cout << std::endl;
 
-
-	//WaveHandler wavehandler = WaveHandler(); 
 	FileHandler fh = FileHandler();
-	//wavehandler.Read("file-example_1mb-OUT.wav");
 	//fh.Write_WAV("file-example_1mb.wav","file-example_1mb-OUT.wav" ,  "Dit is een testbericht");
 	//fh.Read_WAV_optimized("file-example_1mb-OUT.wav");
 	fh.Read_WAV_optimized("lounge1.wav");
