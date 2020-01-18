@@ -95,23 +95,20 @@ void FileHandler::Read_WAV_optimized(std::string path) const
 
 	//Step 2: Check the size of the data chunk.
 	wav.seekg(40);
-	char* chunk_size = new char[4];
-	wav.read(chunk_size, 4);
+	std::vector<char> chunk_size = std::vector<char>(4);
+	wav.read(&chunk_size[0], 4);
 	uint32_t data_size = merge_8_bit_to_32_little_endian(chunk_size[3], chunk_size[2], chunk_size[1], chunk_size[0]);
-
-	//Step 2.1: Delete chunk_size since it wont be used anymore.
-	delete[] chunk_size;
 	std::cout << "Data Size: " << data_size << "\n";
 
 	//Step 3: Put all data from datachunk in a char* for easy acces.
 	wav.seekg(44);
-	char* data = new char[data_size];
-	wav.read(data, data_size);
+	std::vector<char> data = std::vector<char>(data_size);
+	wav.read(&data[0], data_size);
 
 	//Step 4: Loop through all data, getting the most right bit of every left byte. (Little Endian)
 	std::vector<bitset<8>> result;
 	string set;						//Use string because they can easily be converted to bitsets, and allows to put the bits in the right order very easy.
-	for (int i = 0; i < data_size; i += 2) { //SKip every right byte.
+	for (int i = 0; i < data_size; i += 2) { //Skip every right byte.
 		set += std::to_string(bitset<8>((int8_t)(data[i])).test(0));
 		if (set.size() >= 8) {
 			bitset<8> bit = bitset<8>(set);
@@ -119,9 +116,6 @@ void FileHandler::Read_WAV_optimized(std::string path) const
 			set.clear();
 		}
 	}
-
-	//Step 4.1: Delete data, since it won't be used anymore.
-	delete[] data;
 
 	//Step 5: Loop through all the newly made bytes, checking for a utf-8 message.
 	string answer;
@@ -144,7 +138,11 @@ void FileHandler::Read_WAV_optimized(std::string path) const
 			}
 		}
 	}
-	//Step 9: Stream gets closed when function ends automaticly.
+
+	//Step 9: Cleanup.
+	//Streams get cleaned automaticaly.
+	//Vectors get cleaned automaticaly.
+	//Strings get cleaned automaticaly.
 }
 
 void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::string message) const
