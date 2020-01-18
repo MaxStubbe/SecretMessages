@@ -131,53 +131,61 @@ void FileHandler::Read_WAV_optimized(std::string path) const
 			}
 		}
 	}
+
+	//Step 9: Cleanup
+	delete[] chuncksize;
+	delete[] data;
+
+	//Stream gets closed when function ends automaticly.
 }
 
 void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::string message) const
 {
+	//Step 1: Load the file
 	using namespace std;
 	ifstream wav_in{ path_in,ifstream::binary };
-
 	if (wav_in.fail()) {
 		throw std::runtime_error("Failed to open: " + path_in);
 	}
 
+	//Step 2: Create an output stream for the output file.
 	ofstream wav_out{ path_out,ifstream::binary };
-
 	if (wav_out.fail()) {
 		throw std::runtime_error("Failed to open or create: " + path_out);
 	}
 
-	//Write the header
+	//Step 3: Copy the header of the input file to the output file.
 	char* buffer = new char[44];
 	wav_in.read(buffer, 44);
 	wav_out.write(buffer, 44);
 
-	//Find out the chunksize
+	//Step 4: Find out the chunksize of the data of the input file.
 	wav_in.seekg(40);
 	char* chuncksize = new char[4];
 	wav_in.read(chuncksize, 4);
 	unsigned long data_size = (chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
 	std::cout << "Data Size: " << data_size << "\n";
 
-	//Put data in a vector of 16 bitsets
+	//Step 5: Put all data from datachunk in a char* for easy acces.
 	wav_in.seekg(44);
 	char* data = new char[data_size];
 	wav_in.read(data, data_size);
 
-	//Code message to bits
+	//Step 6: Code message to bits
 	std::vector<bitset<8>> bits;
 	for (int i = 0; i < message.size(); i += 1) {
 		bits.push_back(bitset<8>(message[i]));
 	}
 	bits.push_back(bitset<8>('\0'));
 
+	//Step 6.1: Print out the coded message for verification. (Debug part)
 	for (int i = 0; i < message.size(); i += 1) {
 		std::cout << static_cast<char>(bits[i].to_ulong());
 	}
 	std::cout << "\n";
 
-	//Put message in data.
+
+	//Step 7: Put message in the data.
 	int counter = 0;
 	int bit_id = 7;
 	for (int i = 0; i < data_size && counter < bits.size(); i += 2)
@@ -190,7 +198,6 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 			data[i] = static_cast<char>(bit_set.to_ulong());
 		}
 
-
 		--bit_id;
 		if (bit_id < 0) {
 			bit_id = 7;
@@ -198,8 +205,15 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 		}
 	}
 
-
+	//Step 8: Put the data in the output file.
 	wav_out.write(data, data_size);
+
+	//Step 9: Cleanup
+	delete[] buffer;
+	delete[] chuncksize;
+	delete[] data;
+
+	//Streams get closed when function ends automaticly.
 }
 
 void FileHandler::Read_AIFF(std::string path) const

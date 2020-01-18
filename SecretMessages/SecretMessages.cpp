@@ -2,11 +2,12 @@
 #include <iostream>
 #include "WaveHandler.h"
 #include "FileHandler.h"
-
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
 
 int main()
 {
-	const std::string wavefilepath = "de-oude-schicht.wav";
 	//auto temp = cur_byte_order();
 	//std::string input;
 	//std::cout << "Pick wav file: ";
@@ -16,7 +17,7 @@ int main()
 	//std::cout << std::endl;
 
 
-	WaveHandler wavehandler = WaveHandler(); 
+	//WaveHandler wavehandler = WaveHandler(); 
 	FileHandler fh = FileHandler();
 	//wavehandler.Read("file-example_1mb-OUT.wav");
 	//fh.Write_WAV("file-example_1mb.wav","file-example_1mb-OUT.wav" ,  "Dit is een testbericht");
@@ -26,4 +27,6 @@ int main()
 	//fh.Read_AIFF("infinitely-many-numbers.aif");
 	//fh.Write_AIFF("base-16.aiff","base-16-out.aif", "Dit is een test");
 	//fh.Read_AIFF("base-16-out.aif");
+
+	_CrtDumpMemoryLeaks();
 }
