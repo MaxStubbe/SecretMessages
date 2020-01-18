@@ -106,6 +106,11 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 			throw std::runtime_error("Failed to open or create: " + path_out);
 		}
 
+		//Check if the message is utf-8 valid
+		if (!utf8_check_is_valid(message)) {
+			throw std::runtime_error("The given message is not utf-8 valid.");
+		}
+
 		//Step 2,5: Check if the file is a WAVE file
 		wav_in.seekg(8);
 		string type = string();
@@ -144,8 +149,8 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 		for (int i = 0; i < message.size(); i += 1) {
 			std::cout << static_cast<char>(bits[i].to_ulong());
 		}
+		
 		std::cout << "\n";
-
 
 		//Step 7: Put message in the data.
 		int counter = 0;
@@ -301,6 +306,11 @@ void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::str
 		ofstream aiff_out{ path_out,ifstream::binary };
 		if (aiff_out.fail()) {
 			throw std::runtime_error("Failed to open or create: " + path_out);
+		}
+
+		//Check if the message is utf-8 valid
+		if (!utf8_check_is_valid(message)) {
+			throw std::runtime_error("The given message is not utf-8 valid.");
 		}
 
 		//Step 2,5: Check if file is AIFF.

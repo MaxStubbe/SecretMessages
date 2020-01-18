@@ -1,10 +1,17 @@
-#define _CRTDBG_MAP_ALLOC
+﻿#define _CRTDBG_MAP_ALLOC
 #include <iostream>
 #include "WaveHandler.h"
 #include "FileHandler.h"
 #include <sstream>
 #include <iostream>
 #include <fstream>
+
+
+
+#include <string>         // std::string, std::u32string
+#include <locale>         // std::wstring_convert
+#include <codecvt>        // std::codecvt_utf8
+#include <cstdint>        // std::uint_least32_t
 
 std::string Get_Message() {
     std::ifstream message{ "message.txt" };
@@ -18,6 +25,21 @@ int main()
 {
 	bool running = true;
 	FileHandler fh = FileHandler();
+
+	std::u32string str32(U"\U00004f60\U0000597d");  // ni hao (你好)
+	std::string str8;
+
+	std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> cv;
+
+	str8 = cv.to_bytes(str32);
+	//std::cout << std::stoi(cv.to_bytes(str32));
+	//fh.Write_WAV("file-example_1mb.wav","file-example_1mb-OUT.wav","¥");
+	//fh.Read_WAV("file-example_1mb-OUT.wav");
+	if (fh.utf8_check_is_valid(str8)) {
+		std::cout << "Test";
+	}
+
+
 	while (running) {
 		std::string input;//= new char[20];//TODO: Exception for more characters.
 		std::string output;
