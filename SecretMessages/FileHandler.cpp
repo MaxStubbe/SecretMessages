@@ -42,6 +42,7 @@ void FileHandler::Read_WAV(std::string path) const
 		bits2.push_back(bit);
 	}
 	
+	//Step 4: Put data in bitsets, getting the most right bit of every byte.
 	std::vector<bitset<8>> result2;
 	string set2;
 	for (int i = 0; i < bits2.size(); i += 1) {
@@ -56,6 +57,73 @@ void FileHandler::Read_WAV(std::string path) const
 	string answer2;
 	for (int i = 0; i < result2.size(); i += 1) {
 		bitset<8> current_byte = result2[i];
+		unsigned long nmbr = current_byte.to_ulong();
+		//TODO: FULL UTF-8 CHECK.
+		if (nmbr <= CHAR_MAX) {
+			char c = static_cast<char>(nmbr);
+			//Step 6: Keep reading till you find a null byte(0000 0000).
+			if (nmbr == '\0') {
+				//Step 7: Check if message is UTF - 8. If yes : done, if no : clear currently read bytesand go to step 1.
+				if (utf8_check_is_valid(answer2) && answer2.size() > 1) {
+					std::cout << answer2 << "\n";
+					break;
+				}
+				answer2.clear();
+			}
+			else {
+				answer2 += c;
+			}
+		}
+	}
+}
+
+void FileHandler::Read_WAV_optimized(std::string path) const
+{
+	//Step 1: Load the file
+	using namespace std;
+	ifstream wav{ path, ifstream::binary };
+
+	if (wav.fail()) {
+		throw std::runtime_error("Failed to open: " + path);
+	}
+
+	//Step 2: Read the header.
+	wav.seekg(40);
+	uint8_t* chuncksize_d = new uint8_t[4];
+	chuncksize_d[0] = wav.get();
+	chuncksize_d[1] = wav.get();
+	chuncksize_d[2] = wav.get();
+	chuncksize_d[3] = wav.get();
+	uint32_t data_size = (chuncksize_d[3] << 24) | (chuncksize_d[2] << 16) | (chuncksize_d[1] << 8) | chuncksize_d[0];
+
+
+	wav.seekg(40);
+	char* chuncksize = new char[4];
+	wav.read(chuncksize, 4);
+	uint32_t data_size2 = merge_8_bit_to_32_little_endian(chuncksize[3], chuncksize[2], chuncksize[1], chuncksize[0]);//(chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	std::cout << "Data Size: " << data_size2 << "\n";
+
+	//Step 3: Read all data
+	wav.seekg(44);
+	char* data = new char[data_size];
+	wav.read(data, data_size);
+
+
+	std::vector<bitset<8>> result;
+	string set;
+	for (int i = 0; i < data_size; i += 2) {
+		set += std::to_string(bitset<8>((int8_t)(data[i])).test(0));
+		if (set.size() >= 8) {
+			bitset<8> bit = bitset<8>(set);
+			result.push_back(bit);
+			set.clear();
+		}
+
+	}
+
+	string answer2;
+	for (int i = 0; i < result.size(); i += 1) {
+		bitset<8> current_byte = result[i];
 		unsigned long nmbr = current_byte.to_ulong();
 		//TODO: FULL UTF-8 CHECK.
 		if (nmbr <= CHAR_MAX) {
@@ -149,27 +217,27 @@ void FileHandler::Read_AIFF(std::string path) const
 {
 	//Step 1: Load the file
 	using namespace std;
-	ifstream wav{ path, ifstream::binary };
+	ifstream aiff{ path, ifstream::binary };
 
-	if (wav.fail()) {
+	if (aiff.fail()) {
 		throw std::runtime_error("Failed to open: " + path);
 	}
 
 	//Step 2: Read the header.
-	wav.seekg(0);
+	aiff.seekg(0);
 	char* form = new char[4];
-	wav.read(form, 4);
+	aiff.read(form, 4);
 	std::cout << form[0] << form[1] << form[2] << form[3] << "\n";
 
-	wav.seekg(4);
+	aiff.seekg(4);
 	char* filesize = new char[4];
-	wav.read(filesize, 4);
+	aiff.read(filesize, 4);
 	uint32_t data_size_other = merge_8_bit_to_32_big_endian(filesize);// (filesize[0] << 24) | (filesize[1] << 16) | (filesize[2] << 8) | filesize[3];
 	
-	wav.seekg(8);
-	char* aiff = new char[4];
-	wav.read(aiff, 4);
-	std::cout << aiff[0] << aiff[1] << aiff[2] << aiff[3] << "\n";
+	aiff.seekg(8);
+	char* aiff_t = new char[4];
+	aiff.read(aiff_t, 4);
+	std::cout << aiff_t[0] << aiff_t[1] << aiff_t[2] << aiff_t[3] << "\n";
 
 	bool ssnd_found = false;
 	int offset = 0;
@@ -177,13 +245,13 @@ void FileHandler::Read_AIFF(std::string path) const
 	uint32_t data_size;
 	uint32_t data_offset = 0;
 	while (!ssnd_found) {
-		wav.seekg(12+offset);
+		aiff.seekg(12+offset);
 		char* id = new char[4];
-		wav.read(id, 4);
+		aiff.read(id, 4);
 		std::cout << id[0] << id[1] << id[2] << id[3] << "\n";
 
 		char* size = new char[4];
-		wav.read(size, 4);
+		aiff.read(size, 4);
 		uint32_t chunck_size = merge_8_bit_to_32_big_endian(size);// (size[0] << 24) | (size[1] << 16) | (((uint8_t)size[2]) << 8) | size[3];
 
 
@@ -197,7 +265,7 @@ void FileHandler::Read_AIFF(std::string path) const
 						
 
 						char* of = new char[4];
-						wav.read(of, 4);
+						aiff.read(of, 4);
 						data_offset = (of[0] << 24) | (of[1] << 16) | (((uint8_t)of[2]) << 8) | of[3];
 						ssnd_pos = 12 + offset + 16 + data_offset;
 						data_size = chunck_size - data_offset - 8;
@@ -208,9 +276,9 @@ void FileHandler::Read_AIFF(std::string path) const
 
 		offset += 8 + chunck_size;
 	}
-	wav.seekg(ssnd_pos);
+	aiff.seekg(ssnd_pos);
 	char* data = new char[data_size];
-	wav.read(data, data_size);
+	aiff.read(data, data_size);
 
 	std::cout << "Data Size: " << data_size << "\n";
 	
@@ -256,6 +324,118 @@ void FileHandler::Read_AIFF(std::string path) const
 
 void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::string message) const
 {
+	using namespace std;
+	ifstream aiff_in{ path_in,ifstream::binary };
+
+	if (aiff_in.fail()) {
+		throw std::runtime_error("Failed to open: " + path_in);
+	}
+
+	ofstream aiff_out{ path_out,ifstream::binary };
+
+	if (aiff_out.fail()) {
+		throw std::runtime_error("Failed to open or create: " + path_out);
+	}
+
+	aiff_in.seekg(0);
+	char* form = new char[4];
+	aiff_in.read(form, 4);
+	std::cout << form[0] << form[1] << form[2] << form[3] << "\n";
+
+	aiff_in.seekg(4);
+	char* filesize = new char[4];
+	aiff_in.read(filesize, 4);
+	uint32_t data_size_other = merge_8_bit_to_32_big_endian(filesize);// (filesize[0] << 24) | (filesize[1] << 16) | (filesize[2] << 8) | filesize[3];
+
+	aiff_in.seekg(8);
+	char* aiff_t = new char[4];
+	aiff_in.read(aiff_t, 4);
+	std::cout << aiff_t[0] << aiff_t[1] << aiff_t[2] << aiff_t[3] << "\n";
+
+	bool ssnd_found = false;
+	int offset = 0;
+	int ssnd_pos = 0;
+	uint32_t data_size;
+	uint32_t data_offset = 0;
+	while (!ssnd_found) {
+		aiff_in.seekg(12 + offset);
+		char* id = new char[4];
+		aiff_in.read(id, 4);
+		std::cout << id[0] << id[1] << id[2] << id[3] << "\n";
+
+		char* size = new char[4];
+		aiff_in.read(size, 4);
+		uint32_t chunck_size = merge_8_bit_to_32_big_endian(size);// (size[0] << 24) | (size[1] << 16) | (((uint8_t)size[2]) << 8) | size[3];
+
+
+
+		if (id[0] == 'S') {
+			if (id[1] == 'S') {
+				if (id[2] == 'N') {
+					if (id[3] == 'D') {
+						std::cout << "Hurray! " << chunck_size << "\n";
+						ssnd_found = true;
+
+
+						char* of = new char[4];
+						aiff_in.read(of, 4);
+						data_offset = (of[0] << 24) | (of[1] << 16) | (((uint8_t)of[2]) << 8) | of[3];
+						ssnd_pos = 12 + offset + 16 + data_offset;
+						data_size = chunck_size - data_offset - 8;
+					}
+				}
+			}
+		}
+
+		offset += 8 + chunck_size;
+	}
+	aiff_in.seekg(ssnd_pos);
+	char* data = new char[data_size];
+	aiff_in.read(data, data_size);
+
+	std::cout << "Data Size: " << data_size << "\n";
+
+	//Write the header
+	aiff_in.seekg(0);
+	char* buffer = new char[ssnd_pos];
+	aiff_in.read(buffer, ssnd_pos);
+	aiff_out.write(buffer, ssnd_pos);
+
+	//Code message to bits
+	std::vector<bitset<8>> bits;
+	for (int i = 0; i < message.size(); i += 1) {
+		bits.push_back(bitset<8>(message[i]));
+	}
+	bits.push_back(bitset<8>('\0'));
+
+	for (int i = 0; i < message.size(); i += 1) {
+		std::cout << static_cast<char>(bits[i].to_ulong());
+	}
+	std::cout << "\n";
+
+	//Put message in data.
+	int counter = 0;
+	int bit_id = 7;
+	for (int i = 1; i < data_size && counter < bits.size(); i += 2)
+	{
+		char bit = data[i];
+		uint8_t test = bit;
+		bitset<8> bit_set = bitset<8>(test);
+		if (bit_set.test(0) != bits[counter].test(bit_id)) {
+			bit_set.flip(0);
+			data[i] = static_cast<char>(bit_set.to_ulong());
+		}
+
+
+		--bit_id;
+		if (bit_id < 0) {
+			bit_id = 7;
+			++counter;
+		}
+	}
+
+	//write data to file
+	aiff_out.write(data, data_size);
 }
 
 bool FileHandler::utf8_check_is_valid(const std::string& string) const
