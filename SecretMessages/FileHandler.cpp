@@ -365,3 +365,5 @@ bool FileHandler::utf8_check_is_valid(const std::string& string) const
 	}
 	return true;
 }
+
+
