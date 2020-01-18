@@ -95,9 +95,12 @@ void FileHandler::Read_WAV_optimized(std::string path) const
 
 	//Step 2: Check the size of the data chunk.
 	wav.seekg(40);
-	char* chuncksize = new char[4];
-	wav.read(chuncksize, 4);
-	uint32_t data_size = merge_8_bit_to_32_little_endian(chuncksize[3], chuncksize[2], chuncksize[1], chuncksize[0]);//(chuncksize[3] << 24) | (chuncksize[2] << 16) | (chuncksize[1] << 8) | chuncksize[0];
+	char* chunk_size = new char[4];
+	wav.read(chunk_size, 4);
+	uint32_t data_size = merge_8_bit_to_32_little_endian(chunk_size[3], chunk_size[2], chunk_size[1], chunk_size[0]);
+
+	//Step 2.1: Delete chunk_size since it wont be used anymore.
+	delete[] chunk_size;
 	std::cout << "Data Size: " << data_size << "\n";
 
 	//Step 3: Put all data from datachunk in a char* for easy acces.
@@ -116,6 +119,9 @@ void FileHandler::Read_WAV_optimized(std::string path) const
 			set.clear();
 		}
 	}
+
+	//Step 4.1: Delete data, since it won't be used anymore.
+	delete[] data;
 
 	//Step 5: Loop through all the newly made bytes, checking for a utf-8 message.
 	string answer;
@@ -138,12 +144,7 @@ void FileHandler::Read_WAV_optimized(std::string path) const
 			}
 		}
 	}
-
-	//Step 9: Cleanup
-	delete[] chuncksize;
-	delete[] data;
-
-	//Stream gets closed when function ends automaticly.
+	//Step 9: Stream gets closed when function ends automaticly.
 }
 
 void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::string message) const
