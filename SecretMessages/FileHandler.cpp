@@ -24,6 +24,15 @@ void FileHandler::Read_WAV(std::string path) const
 			throw std::runtime_error("Failed to open: " + path);
 		}
 
+		//Step 1,5: Check if the file is a WAVE file
+		wav.seekg(8);
+		string type = string();
+		type.resize(4);
+		wav.read(&type[0], 4);
+		if (type != "WAVE") {
+			throw std::runtime_error("File: " + path + " is not of type WAVE");
+		}
+
 		//Step 2: Check the size of the data chunk.
 		wav.seekg(40);
 		std::vector<char> chunk_size = std::vector<char>(4);
@@ -95,6 +104,15 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 		ofstream wav_out{ path_out,ifstream::binary };
 		if (wav_out.fail()) {
 			throw std::runtime_error("Failed to open or create: " + path_out);
+		}
+
+		//Step 2,5: Check if the file is a WAVE file
+		wav_in.seekg(8);
+		string type = string();
+		type.resize(4);
+		wav_in.read(&type[0], 4);
+		if (type != "WAVE") {
+			throw std::runtime_error("File: " + path_in + " is not of type WAVE");
 		}
 
 		//Step 3: Copy the header of the input file to the output file.
@@ -170,6 +188,16 @@ void FileHandler::Read_AIFF(std::string path) const
 		if (aiff.fail()) {
 			throw std::runtime_error("Failed to open: " + path);
 		}
+		
+		//Step 1,5: Check if file is AIFF.
+		aiff.seekg(8);
+		string type = string();
+		type.resize(4);
+		aiff.read(&type[0], 4);
+		if (type != "AIFF") {
+			throw std::runtime_error("File: " + path + " is not of type AIFF");
+		}
+
 
 		//Step 2: Read the header
 		bool ssnd_found = false;
@@ -273,6 +301,16 @@ void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::str
 		if (aiff_out.fail()) {
 			throw std::runtime_error("Failed to open or create: " + path_out);
 		}
+
+		//Step 2,5: Check if file is AIFF.
+		aiff_in.seekg(8);
+		string type = string();
+		type.resize(4);
+		aiff_in.read(&type[0], 4);
+		if (type != "AIFF") {
+			throw std::runtime_error("File: " + path_in + " is not of type AIFF");
+		}
+
 
 		//Step 3: Read the header
 		bool ssnd_found = false;
