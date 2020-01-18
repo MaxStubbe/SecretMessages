@@ -116,6 +116,7 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 		}
 
 		//Step 3: Copy the header of the input file to the output file.
+		wav_in.seekg(0);
 		std::vector<char> buffer = std::vector<char>(44);
 		wav_in.read(&buffer[0], 44);
 		wav_out.write(&buffer[0], 44);
