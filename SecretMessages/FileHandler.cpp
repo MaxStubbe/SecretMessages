@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_DEPRECATE
+
 #include "FileHandler.h"
 #include <iostream>
 #include <fstream>
@@ -6,16 +6,17 @@
 #include <bitset>
 #include "bit_manipulation.h"
 #include <algorithm>
+#include <sstream>
 
-/*
-RAII (Resource Acquisition Is Initialization) Function.
-Resource = ifstream of path.
-ifstream is initialized inside the function, thus binding its lifetime to the function.
-This is because the destructor of ifstream gets called when the function gets out of scope.
-So we can guarantee that if the function is done, other functions will be able to access the file with the same path.
-*/
-void FileHandler::Read_WAV(std::string path) const
-{
+std::string Get_Message() {
+	std::ifstream message{ "message.txt" };
+	if (message.fail()) {
+		throw std::runtime_error("Failed to open: message.txt");
+	}
+	return static_cast<std::stringstream const&>(std::stringstream() << message.rdbuf()).str();
+}
+
+void Read_WAV(std::string path) {
 	try {
 		//Step 1: Load the file
 		using namespace std;
@@ -93,8 +94,7 @@ void FileHandler::Read_WAV(std::string path) const
 	}
 }
 
-void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::string message) const
-{
+void Write_WAV(std::string path_in, std::string path_out, std::string message) {
 	try {
 		//Step 1: Load the file
 		using namespace std;
@@ -191,8 +191,7 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 	}
 }
 
-void FileHandler::Read_AIFF(std::string path) const
-{
+void Read_AIFF(std::string path) {
 	try{
 		//Step 1: Load the file
 		using namespace std;
@@ -301,8 +300,7 @@ void FileHandler::Read_AIFF(std::string path) const
 	}
 }
 
-void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::string message) const
-{
+void Write_AIFF(std::string path_in, std::string path_out, std::string message) {
 	try {
 		//Step 1: Load the file
 		using namespace std;
@@ -431,27 +429,5 @@ void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::str
 	}
 }
 
-bool FileHandler::utf8_check_is_valid(const std::string& string) const
-{
-	int c, i, ix, n, j;
-	for (i = 0, ix = string.length(); i < ix; i++)
-	{
-		c = (unsigned char)string[i];
-		//if (c==0x09 || c==0x0a || c==0x0d || (0x20 <= c && c <= 0x7e) ) n = 0; // is_printable_ascii
-		if (0x00 <= c && c <= 0x7f) n = 0; // 0bbbbbbb
-		else if ((c & 0xE0) == 0xC0) n = 1; // 110bbbbb
-		else if (c == 0xed && i < (ix - 1) && ((unsigned char)string[i + 1] & 0xa0) == 0xa0) return false; //U+d800 to U+dfff
-		else if ((c & 0xF0) == 0xE0) n = 2; // 1110bbbb
-		else if ((c & 0xF8) == 0xF0) n = 3; // 11110bbb
-		//else if (($c & 0xFC) == 0xF8) n=4; // 111110bb //byte 5, unnecessary in 4 byte UTF-8
-		//else if (($c & 0xFE) == 0xFC) n=5; // 1111110b //byte 6, unnecessary in 4 byte UTF-8
-		else return false;
-		for (j = 0; j < n && i < ix; j++) { // n bytes matching 10bbbbbb follow ?
-			if ((++i == ix) || (((unsigned char)string[i] & 0xC0) != 0x80))
-				return false;
-		}
-	}
-	return true;
-}
 
 

@@ -1,29 +1,11 @@
 ﻿#define _CRTDBG_MAP_ALLOC
 #include <iostream>
 #include "FileHandler.h"
-#include <sstream>
 #include <iostream>
-#include <fstream>
-
-
-
-#include <string>         // std::string, std::u32string
-#include <locale>         // std::wstring_convert
-#include <codecvt>        // std::codecvt_utf8
-#include <cstdint>        // std::uint_least32_t
-
-std::string Get_Message() {
-    std::ifstream message{ "message.txt" };
-    if (message.fail()) {
-        throw std::runtime_error("Failed to open: message.txt");
-    }
-    return static_cast<std::stringstream const&>(std::stringstream() << message.rdbuf()).str();
-}
 
 int main()
 {
 	bool running = true;
-	FileHandler fh = FileHandler();
 	while (running) {
 		std::string input;
 		std::string output;
@@ -44,10 +26,10 @@ int main()
 				    std::string path = static_cast<std::string>(input);
 				    std::size_t found = path.find_last_of(".");
 				    if (path.substr(found + 1) == "wav") {
-					    fh.Read_WAV(input);
+					    Read_WAV(input);
 				    }
 				    else if (path.substr(found + 1) == "aif" || path.substr(found + 1) == "aiff") {
-					    fh.Read_AIFF(input);
+					    Read_AIFF(input);
 				    }
 					else {
 						throw std::runtime_error("File: " + input + " is not of type: aiff or wav");
@@ -70,10 +52,10 @@ int main()
 				    std::string path = static_cast<std::string>(input);
 				    std::size_t found = path.find_last_of(".");
 				    if (path.substr(found + 1) == "wav") {
-					    fh.Write_WAV(input, output, message);
+					    Write_WAV(input, output, message);
 				    }
 				    else if (path.substr(found + 1) == "aif" || path.substr(found + 1) == "aiff") {
-					    fh.Write_AIFF(input, output, message);
+					    Write_AIFF(input, output, message);
 				    }
 					else {
 						throw std::runtime_error("File: " + input + " is not of type: aiff or wav");
