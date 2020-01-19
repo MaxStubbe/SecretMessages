@@ -88,6 +88,9 @@ void FileHandler::Read_WAV(std::string path) const
 	catch (const char* msg) {
 		throw msg;
 	}
+	catch (std::runtime_error msg) {
+		throw msg;
+	}
 }
 
 void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::string message) const
@@ -181,6 +184,9 @@ void FileHandler::Write_WAV(std::string path_in, std::string path_out, std::stri
 		//Strings get cleaned automaticaly.
 	}
 	catch (const char* msg) {
+		throw msg;
+	}
+	catch (std::runtime_error msg) {
 		throw msg;
 	}
 }
@@ -288,6 +294,9 @@ void FileHandler::Read_AIFF(std::string path) const
 		//Strings get cleaned automaticaly.
 	}
 	catch (const char* msg) {
+		throw msg;
+	}
+	catch (std::runtime_error msg) {
 		throw msg;
 	}
 }
@@ -415,6 +424,9 @@ void FileHandler::Write_AIFF(std::string path_in, std::string path_out, std::str
 		//Strings get cleaned automaticaly.
 	}
 	catch (const char* msg) {
+		throw msg;
+	}
+	catch (std::runtime_error msg) {
 		throw msg;
 	}
 }

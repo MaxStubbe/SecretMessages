@@ -25,7 +25,7 @@ uint32_t merge_8_bit_to_32_big_endian(uint8_t first, uint8_t second, uint8_t thi
 
 uint32_t merge_8_bit_to_32_big_endian(const std::vector<char>& data) {
 	if (data.size() != 4) {
-		throw "bit_manipulation error: vector is not size 4";
+		throw std::runtime_error("bit_manipulation error: vector is not size 4");
 	}
 	return merge_8_bit_to_32_big_endian(data[3], data[2], data[1], data[0]);
 }
@@ -36,7 +36,7 @@ uint32_t merge_8_bit_to_32_little_endian(uint8_t first, uint8_t second, uint8_t 
 
 uint32_t merge_8_bit_to_32_little_endian(const std::vector<char>& data) {
 	if (data.size() != 4) {
-		throw "bit_manipulation error: vector is not size 4";
+		throw std::runtime_error("bit_manipulation error: vector is not size 4");
 	}
 	return merge_8_bit_to_32_little_endian(data[3], data[2], data[1], data[0]);
 }
@@ -59,19 +59,19 @@ void reverse_b8(uint8_t& byte) {
 
 void set_bit(uint8_t& number, int bit) {
 	if (bit > 7 || bit < 0)
-		throw "bit_manipulation error: index out of bound";
+		throw std::runtime_error("bit_manipulation error: index out of bound");
 	number = number | (1 << bit);
 }
 
 void reset_bit(uint8_t& number, int bit) {
 	if (bit > 7 || bit < 0)
-		throw "bit_manipulation error: index out of bound";
+		throw std::runtime_error("bit_manipulation error: index out of bound");
 	number = number & ~(1 << bit);
 }
 
 void flip_bit(uint8_t& number, int bit) {
 	if (bit > 7 || bit < 0)
-		throw "bit_manipulation error: index out of bound";
+		throw std::runtime_error("bit_manipulation error: index out of bound");
 	number = number ^ (1 << bit);
 }
 
@@ -85,7 +85,7 @@ void or_bitmask(uint8_t& number, uint8_t mask) {
 
 bool test_bit(uint8_t number, int bit) {
 	if (bit > 7 || bit < 0)
-		throw "bit_manipulation error: index out of bound";
+		throw std::runtime_error("bit_manipulation error: index out of bound");
 	return number & uint8_t(pow(2, bit));
 }
 
