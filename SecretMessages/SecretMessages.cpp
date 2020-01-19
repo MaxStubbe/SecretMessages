@@ -7,12 +7,12 @@ int main()
 {
 	bool running = true;
 	while (running) {
-		std::string input;
-		std::string output;
-		std::string message;
-		std::cout << "what would you like to do: read or write?" << std::endl;
-		std::getline(std::cin, input);
 		try {
+			std::string input;
+			std::string output;
+			std::string message;
+			std::cout << "what would you like to do: read or write?" << std::endl;
+			std::getline(std::cin, input);
 		    if (input == "quit") {
 			    std::cout << "QUIT" << std::endl;;
 			    running = false;
