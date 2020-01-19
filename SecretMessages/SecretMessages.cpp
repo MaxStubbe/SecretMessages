@@ -1,6 +1,5 @@
 ﻿#define _CRTDBG_MAP_ALLOC
 #include <iostream>
-#include "WaveHandler.h"
 #include "FileHandler.h"
 #include <sstream>
 #include <iostream>
@@ -62,6 +61,10 @@ int main()
 				    std::cout << "write text: " << std::endl;
 				    std::getline(std::cin, message);
 				    std::cout << "writing: " << output << std::endl;
+
+					if (message == "Use file") {
+						message = Get_Message();
+					}
 
 				    //get file
 				    std::string path = static_cast<std::string>(input);
